@@ -1,0 +1,23 @@
+{
+  "name": "artificial-super-intelligence-asi",
+  "version": "1.0.0",
+  "description": "Ontological simulation system with KCBS pentagrams, nested realities, and wave-based consciousness",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview",
+    "test": "vitest"
+  },
+  "dependencies": {
+    "three": "^0.160.0",
+    "uuid": "^9.0.1"
+  },
+  "devDependencies": {
+    "@types/three": "^0.160.0",
+    "@types/uuid": "^9.0.7",
+    "typescript": "^5.3.3",
+    "vite": "^5.0.10",
+    "vitest": "^1.1.0"
+  }
+}

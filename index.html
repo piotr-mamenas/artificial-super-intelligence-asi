@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ASI - Ontological Simulation</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      
+      html, body {
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+        font-family: 'Segoe UI', system-ui, sans-serif;
+        background: #0a0a0f;
+        color: #e0e0e0;
+      }
+      
+      #app {
+        width: 100%;
+        height: 100%;
+        display: flex;
+      }
+      
+      #canvas-container {
+        flex: 1;
+        position: relative;
+      }
+      
+      #three-canvas {
+        width: 100%;
+        height: 100%;
+        display: block;
+      }
+      
+      #ui-panel {
+        width: 320px;
+        background: rgba(15, 15, 25, 0.95);
+        border-left: 1px solid rgba(100, 100, 150, 0.3);
+        padding: 16px;
+        overflow-y: auto;
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+      }
+      
+      .panel-section {
+        background: rgba(30, 30, 50, 0.6);
+        border-radius: 8px;
+        padding: 12px;
+        border: 1px solid rgba(100, 100, 150, 0.2);
+      }
+      
+      .panel-section h3 {
+        font-size: 12px;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        color: #8888aa;
+        margin-bottom: 12px;
+        padding-bottom: 8px;
+        border-bottom: 1px solid rgba(100, 100, 150, 0.2);
+      }
+      
+      .control-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 8px;
+      }
+      
+      .control-row label {
+        font-size: 13px;
+        color: #aaaacc;
+      }
+      
+      .control-row input[type="range"] {
+        width: 120px;
+        accent-color: #6666ff;
+      }
+      
+      .control-row input[type="number"] {
+        width: 60px;
+        background: rgba(20, 20, 40, 0.8);
+        border: 1px solid rgba(100, 100, 150, 0.3);
+        color: #e0e0e0;
+        padding: 4px 8px;
+        border-radius: 4px;
+      }
+      
+      button {
+        background: linear-gradient(135deg, #4040a0, #6060c0);
+        border: none;
+        color: white;
+        padding: 10px 16px;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 13px;
+        font-weight: 500;
+        transition: all 0.2s;
+      }
+      
+      button:hover {
+        background: linear-gradient(135deg, #5050b0, #7070d0);
+        transform: translateY(-1px);
+      }
+      
+      button:active {
+        transform: translateY(0);
+      }
+      
+      .status-indicator {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 12px;
+      }
+      
+      .status-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: #44ff44;
+        animation: pulse 2s infinite;
+      }
+      
+      @keyframes pulse {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.5; }
+      }
+      
+      .metric-value {
+        font-family: 'Consolas', monospace;
+        color: #88ccff;
+        font-size: 14px;
+      }
+      
+      #wave-display {
+        height: 100px;
+        background: rgba(20, 20, 40, 0.5);
+        border-radius: 4px;
+        margin-top: 8px;
+      }
+      
+      #kcbs-mini {
+        height: 150px;
+        background: rgba(20, 20, 40, 0.5);
+        border-radius: 4px;
+        margin-top: 8px;
+      }
+      
+      #reality-tree {
+        font-family: 'Consolas', monospace;
+        font-size: 11px;
+        color: #aaaacc;
+        white-space: pre;
+        line-height: 1.6;
+      }
+      
+      .explanation-text {
+        font-size: 12px;
+        line-height: 1.5;
+        color: #ccccdd;
+        max-height: 150px;
+        overflow-y: auto;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="app">
+      <div id="canvas-container">
+        <canvas id="three-canvas"></canvas>
+      </div>
+      <div id="ui-panel">
+        <div class="panel-section">
+          <h3>System Status</h3>
+          <div class="status-indicator">
+            <span class="status-dot"></span>
+            <span>Reality Engine Running</span>
+          </div>
+          <div class="control-row">
+            <label>Logical Time:</label>
+            <span id="logical-time" class="metric-value">0</span>
+          </div>
+          <div class="control-row">
+            <label>Active Realities:</label>
+            <span id="reality-count" class="metric-value">1</span>
+          </div>
+        </div>
+        
+        <div class="panel-section">
+          <h3>Wave Control</h3>
+          <div class="control-row">
+            <label>Focus:</label>
+            <input type="range" id="focus-slider" min="0" max="100" value="50" />
+          </div>
+          <div class="control-row">
+            <label>Dispersion:</label>
+            <input type="range" id="dispersion-slider" min="0" max="100" value="50" />
+          </div>
+          <div id="wave-display"></div>
+        </div>
+        
+        <div class="panel-section">
+          <h3>KCBS Pentagram</h3>
+          <div class="control-row">
+            <label>Rotation:</label>
+            <input type="range" id="kcbs-rotation" min="0" max="360" value="0" />
+          </div>
+          <div class="control-row">
+            <label>Context:</label>
+            <select id="kcbs-context">
+              <option value="0">O₁-O₂</option>
+              <option value="1">O₂-O₃</option>
+              <option value="2">O₃-O₄</option>
+              <option value="3">O₄-O₅</option>
+              <option value="4">O₅-O₁</option>
+            </select>
+          </div>
+          <div id="kcbs-mini"></div>
+        </div>
+        
+        <div class="panel-section">
+          <h3>Reality Hierarchy</h3>
+          <div id="reality-tree">Root Reality
+└── (no nested realities)</div>
+        </div>
+        
+        <div class="panel-section">
+          <h3>Metrics</h3>
+          <div class="control-row">
+            <label>Inversion Error:</label>
+            <span id="inversion-error" class="metric-value">0.00</span>
+          </div>
+          <div class="control-row">
+            <label>Hadrons Active:</label>
+            <span id="hadron-count" class="metric-value">0</span>
+          </div>
+          <div class="control-row">
+            <label>Black Hole Regions:</label>
+            <span id="blackhole-count" class="metric-value">0</span>
+          </div>
+        </div>
+        
+        <div class="panel-section">
+          <h3>Decision Explanation</h3>
+          <div id="explanation" class="explanation-text">
+            Awaiting first closure cycle...
+          </div>
+        </div>
+        
+        <div class="panel-section">
+          <button id="tick-btn">Single Tick</button>
+          <button id="run-btn">Run Simulation</button>
+          <button id="pause-btn">Pause</button>
+        </div>
+      </div>
+    </div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

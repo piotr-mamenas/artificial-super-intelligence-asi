@@ -1,0 +1,31 @@
+{
+  "compilerOptions": {
+    "target": "ES2020",
+    "useDefineForClassFields": true,
+    "module": "ESNext",
+    "lib": ["ES2020", "DOM", "DOM.Iterable"],
+    "skipLibCheck": true,
+    "moduleResolution": "bundler",
+    "allowImportingTsExtensions": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "noEmit": true,
+    "strict": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noFallthroughCasesInSwitch": true,
+    "baseUrl": ".",
+    "paths": {
+      "@core/*": ["src/core/*"],
+      "@world/*": ["src/world/*"],
+      "@agent/*": ["src/agent/*"],
+      "@learning/*": ["src/learning/*"],
+      "@reasoning/*": ["src/reasoning/*"],
+      "@nested/*": ["src/nested/*"],
+      "@interpretability/*": ["src/interpretability/*"],
+      "@viz/*": ["src/viz/*"],
+      "@config/*": ["src/config/*"]
+    }
+  },
+  "include": ["src"]
+}
