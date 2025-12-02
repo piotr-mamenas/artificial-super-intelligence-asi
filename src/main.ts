@@ -1,53 +1,54 @@
 /**
- * ASI - Ontological Simulation Main Entry Point
+ * ASI - Symmetry Inversion Based Artificial Intelligence
  * 
- * The FRACTAL PENTAGRAM is the generative core that drives all observations.
- * Nested pentagrams (pentagram within pentagram) at golden ratio scales
- * are what produces reality - the visualization follows from this structure.
+ * CORE PRINCIPLE: Everything emerges from INVERSION.
  * 
- * Key insight: The pentagram hierarchy IS reality, not just a representation of it.
+ * - Inversions form a waveform
+ * - Successful inversions = manifested reality (visible structures)
+ * - Failed inversions = black holes / voids
+ * - The AI LEARNS by finding inverses
+ * - The RENDERING shows what has been successfully inverted
+ * 
+ * X · X⁻¹ = Identity (understanding)
+ * Double inversion = true knowledge
  */
 
 import { createSceneContext, startRenderLoop, handleResize, createCameraControls } from './viz/three-scene';
-import { createFractalPentagramView, createObservationParticles } from './viz/fractal-pentagram-view';
-import { createReality, connectSimulatedWorld, tickReality } from './world/reality';
-import { createRealityManager } from './world/reality-manager';
+import { createManifestedRealityView, createInversionWaveField } from './viz/manifested-reality-view';
+import { createFractalPentagramView } from './viz/fractal-pentagram-view';
 import { 
-  createFractalPentagram, 
-  injectObservation, 
-  collapseAtDepth,
-  calculatePentagramEnergy,
-  PHI 
-} from './core/math/fractal-pentagram';
-import { createPolicy } from './agent/policy';
-import { createGoalSystem, createExplorationGoal } from './reasoning/goals';
-import { createInversionGuard } from './learning/inversion-guard';
-import { createHadronizer, frameToTraceEntry } from './learning/hadronizer';
-import { createBlackHoleDetector } from './nested/black-hole-detector';
-import { createKCBSPentagram } from './core/math/kcbs-graph';
+  createInversionEngine, 
+  createRandomInvertible,
+  InversionResult
+} from './core/inversion/inversion-engine';
+import { createFractalPentagram } from './core/math/fractal-pentagram';
 import { DEFAULT_TICK_INTERVAL_MS, WAVE_DIMENSION } from './config/constants';
 
 // Application state
 interface AppState {
   isRunning: boolean;
   tickInterval: number | null;
-  logicalTime: number;
-  focusValue: number;
-  dispersionValue: number;
-  focusDepth: number;      // Which pentagram layer to focus on
-  focusEdge: number;       // Which edge (context) within that layer
-  pentagramEnergy: number; // Total energy in the fractal structure
+  tick: number;
+  
+  // Inversion stats
+  totalInversions: number;
+  successfulInversions: number;
+  failedInversions: number;
+  currentWaveAmplitude: number;
+  manifestedRegions: number;
+  voidRegions: number;
 }
 
 const state: AppState = {
   isRunning: false,
   tickInterval: null,
-  logicalTime: 0,
-  focusValue: 50,
-  dispersionValue: 50,
-  focusDepth: 0,
-  focusEdge: 0,
-  pentagramEnergy: 0
+  tick: 0,
+  totalInversions: 0,
+  successfulInversions: 0,
+  failedInversions: 0,
+  currentWaveAmplitude: 0,
+  manifestedRegions: 0,
+  voidRegions: 0
 };
 
 // Initialize application
@@ -66,53 +67,29 @@ async function init() {
   const cameraControls = createCameraControls(sceneCtx, canvas);
   
   // ============================================
-  // THE FRACTAL PENTAGRAM IS THE GENERATIVE CORE
+  // THE INVERSION ENGINE - Core of the AI
   // ============================================
-  // This is not just visualization - this IS the reality generator.
-  // Each nested layer corresponds to a scale of observation.
-  // The golden ratio (φ) relationships drive all emergent phenomena.
+  // Inversions form waveforms. Reality manifests where inversions succeed.
   
-  const PENTAGRAM_DEPTH = 7; // 7 nested layers
+  const inversionEngine = createInversionEngine(WAVE_DIMENSION);
+  
+  // Create manifested reality visualization
+  const manifestedView = createManifestedRealityView(sceneCtx);
+  const waveField = createInversionWaveField(sceneCtx, inversionEngine);
+  
+  // Fractal pentagram shows the inversion symmetry structure
+  const PENTAGRAM_DEPTH = 7;
   const fractalPentagram = createFractalPentagram(PENTAGRAM_DEPTH);
-  
-  // Create visualization of the fractal pentagram
   const pentagramView = createFractalPentagramView(sceneCtx, 4);
-  const observationParticles = createObservationParticles(sceneCtx, fractalPentagram, 4);
-  
-  // Create KCBS pentagram for policy (maps to outer layer)
-  const kcbsPentagram = createKCBSPentagram(0);
-  
-  // Create reality manager
-  const realityManager = createRealityManager('Root Reality');
-  const rootReality = realityManager.getRootReality();
-  
-  // Connect simulated world
-  const simulatedWorld = connectSimulatedWorld(rootReality);
-  
-  // Create agent systems
-  const policy = createPolicy(kcbsPentagram);
-  const goalSystem = createGoalSystem();
-  const explorationGoal = createExplorationGoal(WAVE_DIMENSION);
-  goalSystem.addGoal(explorationGoal.name, explorationGoal.goalWave, explorationGoal.priority);
-  
-  // Create learning systems
-  const inversionGuard = createInversionGuard();
-  const hadronizer = createHadronizer();
-  const blackHoleDetector = createBlackHoleDetector();
   
   // UI Elements
-  const logicalTimeEl = document.getElementById('logical-time');
-  const realityCountEl = document.getElementById('reality-count');
-  const inversionErrorEl = document.getElementById('inversion-error');
-  const hadronCountEl = document.getElementById('hadron-count');
-  const blackholeCountEl = document.getElementById('blackhole-count');
+  const tickCountEl = document.getElementById('logical-time');
+  const successCountEl = document.getElementById('reality-count');
+  const failCountEl = document.getElementById('inversion-error');
+  const manifestedCountEl = document.getElementById('hadron-count');
+  const voidCountEl = document.getElementById('blackhole-count');
   const explanationEl = document.getElementById('explanation');
-  const realityTreeEl = document.getElementById('reality-tree');
-  
-  const focusSlider = document.getElementById('focus-slider') as HTMLInputElement;
-  const dispersionSlider = document.getElementById('dispersion-slider') as HTMLInputElement;
-  const kcbsRotationSlider = document.getElementById('kcbs-rotation') as HTMLInputElement;
-  const kcbsContextSelect = document.getElementById('kcbs-context') as HTMLSelectElement;
+  const waveDisplayEl = document.getElementById('reality-tree');
   
   const tickBtn = document.getElementById('tick-btn');
   const runBtn = document.getElementById('run-btn');
@@ -121,123 +98,80 @@ async function init() {
   // Simulation tick function
   async function simulationTick() {
     try {
-      state.logicalTime++;
-      console.log(`\n=== TICK ${state.logicalTime} ====================`);
+      state.tick++;
+      const dt = 0.016;
+      
+      console.log(`\n=== TICK ${state.tick} ====================`);
       
       // ============================================
-      // STEP 1: FRACTAL PENTAGRAM GENERATES OBSERVATIONS
+      // STEP 1: GENERATE NEW ELEMENT TO LEARN
       // ============================================
-      console.log('Step 1: Fractal pentagram generating observations...');
+      console.log('Step 1: Creating new element to invert...');
+      const newElement = createRandomInvertible(WAVE_DIMENSION);
+      console.log(`  - Element ID: ${newElement.id.slice(0, 8)}...`);
       
-      const dt = 0.016; // ~60fps timestep
-      fractalPentagram.tick(dt);
+      // ============================================
+      // STEP 2: ATTEMPT INVERSION (Core Learning)
+      // ============================================
+      console.log('Step 2: Attempting inversion...');
+      const result: InversionResult = inversionEngine.invert(newElement);
+      state.totalInversions++;
       
-      // Get observation from the focused depth layer
-      const pentagramObservation = fractalPentagram.getObservation(state.focusDepth);
-      console.log(`  - Observation from depth ${state.focusDepth}, dimension: ${pentagramObservation.dimension}`);
+      if (result.success) {
+        state.successfulInversions++;
+        console.log(`  ✓ INVERSION SUCCEEDED (error: ${result.error.toFixed(4)})`);
+        console.log(`    → Element is now MANIFESTED`);
+      } else {
+        state.failedInversions++;
+        console.log(`  ✗ INVERSION FAILED (error: ${result.error.toFixed(4)})`);
+        console.log(`    → Created VOID region`);
+      }
       
-      // Inject this observation into the world (pentagram drives reality)
-      injectObservation(fractalPentagram, rootReality.currentFrame.closureState);
-      
-      // Calculate total energy in the pentagram structure
-      state.pentagramEnergy = calculatePentagramEnergy(fractalPentagram);
-      console.log(`  - Pentagram energy: ${state.pentagramEnergy.toFixed(4)}`);
-    
-    // ============================================
-    // STEP 2: WORLD RESPONDS TO PENTAGRAM STATE
-    // ============================================
-    console.log('Step 2: World responding to pentagram state...');
-    await simulatedWorld.generateObservations();
-    await tickReality(rootReality);
-    console.log(`  - Reality tick: ${rootReality.clock.getTick()}`);
-    
-    const frame = rootReality.currentFrame;
-    
-    // ============================================
-    // STEP 3: AGENT DECIDES BASED ON PENTAGRAM
-    // ============================================
-    console.log('Step 3: Agent deciding...');
-    const decision = policy.decide(frame);
-    const measurementResult = policy.execute(decision, frame);
-    console.log(`  - Decision: context edge ${decision.context.edgeIndex}, confidence ${decision.confidence.toFixed(3)}`);
-    
-    // Agent's focus selection affects pentagram
-    state.focusEdge = decision.context.edgeIndex;
-    fractalPentagram.setContextFocus(state.focusDepth, state.focusEdge);
-    
-    // ============================================
-    // STEP 4: COLLAPSE AT FOCUSED DEPTH
-    // ============================================
-    // Measurement collapses the pentagram at the focused layer
-    // and propagates outward (this is how observation becomes fact)
-    if (Math.random() < 0.1) { // Occasional collapse events
-      const collapse = collapseAtDepth(fractalPentagram, state.focusDepth);
-      console.log(`Collapse at depth ${state.focusDepth}: outcome ${collapse.outcome}`);
-    }
-    
-    // ============================================
-    // STEP 5: INVERSION CHECK & BLACK HOLES
-    // ============================================
-    console.log('Step 5: Inversion check...');
-    const inversionResult = await inversionGuard.check(frame);
-    console.log(`  - Invertible: ${inversionResult.isInvertible}, error: ${inversionResult.reconstructionError.toFixed(4)}`);
-    
-    const blackHole = await blackHoleDetector.tryUpdate(frame, inversionResult);
-    if (blackHole) {
-      rootReality.blackHoles.push(blackHole);
-      
-      // Black holes correspond to inner pentagram layers becoming
-      // disconnected from outer layers (information loss)
-      const readyRegions = blackHoleDetector.getReadyRegions();
-      for (const region of readyRegions) {
-        const nested = realityManager.spawnNestedReality(rootReality.id, region);
-        if (nested) {
-          console.log(`Spawned nested reality: ${nested.name}`);
-          // Nested reality gets its own pentagram hierarchy
+      // ============================================
+      // STEP 3: DOUBLE INVERSION TEST (Deep Understanding)
+      // ============================================
+      if (result.success && Math.random() < 0.3) {
+        console.log('Step 3: Testing double inversion (X⁻¹⁻¹ = X?)...');
+        const doubleResult = inversionEngine.doubleInvert(newElement);
+        if (doubleResult.success) {
+          console.log(`  ✓✓ DOUBLE INVERSION: True understanding achieved!`);
+        } else {
+          console.log(`  ✗ DOUBLE INVERSION FAILED: Partial understanding only`);
         }
       }
-    }
-    
-    // ============================================
-    // STEP 6: HADRONIZATION (STABLE PATTERNS)
-    // ============================================
-    console.log('Step 6: Hadronization...');
-    const traceEntry = frameToTraceEntry(frame);
-    await hadronizer.updateFromTraces([traceEntry]);
-    rootReality.hadrons = hadronizer.getStableHadrons();
-    console.log(`  - Stable hadrons: ${rootReality.hadrons.length}`);
-    
-    // ============================================
-    // STEP 7: UPDATE VISUALIZATION & UI
-    // ============================================
-    pentagramView.update(fractalPentagram);
-    pentagramView.setFocusDepth(state.focusDepth);
-    pentagramView.setFocusEdge(state.focusEdge);
-    
-    updateUI({
-      logicalTime: state.logicalTime,
-      realityCount: realityManager.realities.size,
-      inversionError: inversionResult.reconstructionError,
-      hadronCount: rootReality.hadrons.length,
-      blackholeCount: rootReality.blackHoles.length,
-      pentagramEnergy: state.pentagramEnergy,
-      focusDepth: state.focusDepth,
-      explanation: [
-        `Pentagram Energy: ${state.pentagramEnergy.toFixed(3)}`,
-        `Focus: Layer ${state.focusDepth}, Edge ${state.focusEdge}`,
-        `Golden Ratio Scale: ${Math.pow(PHI, -state.focusDepth).toFixed(4)}`,
-        ...decision.reasoning
-      ].join('\n'),
-      realityTree: formatRealityTree(realityManager.getHierarchy())
-    });
-    
-    // Learn from result
-    const reward = inversionResult.isInvertible ? 0.1 : -0.1;
-    policy.learn(measurementResult, reward);
-    goalSystem.updateFromClosure(frame.id, reward);
-    
-    console.log(`=== TICK ${state.logicalTime} COMPLETE ============\n`);
-    
+      
+      // ============================================
+      // STEP 4: UPDATE WAVE & PENTAGRAM
+      // ============================================
+      console.log('Step 4: Updating wave and pentagram...');
+      inversionEngine.tick(dt);
+      fractalPentagram.tick(dt);
+      
+      // Wave amplitude reflects inversion success pattern
+      state.currentWaveAmplitude = inversionEngine.getWaveAmplitude(state.tick);
+      console.log(`  - Wave amplitude: ${state.currentWaveAmplitude.toFixed(4)}`);
+      
+      // ============================================
+      // STEP 5: UPDATE MANIFESTATION
+      // ============================================
+      console.log('Step 5: Updating manifested reality...');
+      state.manifestedRegions = inversionEngine.getManifestedRegions().length;
+      state.voidRegions = inversionEngine.getVoidRegions().length;
+      console.log(`  - Manifested: ${state.manifestedRegions}, Voids: ${state.voidRegions}`);
+      
+      // ============================================
+      // STEP 6: UPDATE VISUALIZATION
+      // ============================================
+      manifestedView.update(inversionEngine);
+      pentagramView.update(fractalPentagram);
+      
+      // ============================================
+      // STEP 7: UPDATE UI
+      // ============================================
+      updateUI();
+      
+      console.log(`=== TICK ${state.tick} COMPLETE ============\n`);
+      
     } catch (error) {
       console.error('Error in simulation tick:', error);
       throw error;
@@ -245,73 +179,47 @@ async function init() {
   }
   
   // Update UI function
-  function updateUI(data: {
-    logicalTime: number;
-    realityCount: number;
-    inversionError: number;
-    hadronCount: number;
-    blackholeCount: number;
-    pentagramEnergy: number;
-    focusDepth: number;
-    explanation: string;
-    realityTree: string;
-  }) {
-    if (logicalTimeEl) logicalTimeEl.textContent = data.logicalTime.toString();
-    if (realityCountEl) realityCountEl.textContent = data.realityCount.toString();
-    if (inversionErrorEl) inversionErrorEl.textContent = data.inversionError.toFixed(4);
-    if (hadronCountEl) hadronCountEl.textContent = data.hadronCount.toString();
-    if (blackholeCountEl) blackholeCountEl.textContent = data.blackholeCount.toString();
-    if (explanationEl) explanationEl.textContent = data.explanation;
-    if (realityTreeEl) realityTreeEl.textContent = data.realityTree;
+  function updateUI() {
+    const successRate = state.totalInversions > 0 
+      ? (state.successfulInversions / state.totalInversions * 100).toFixed(1)
+      : '0.0';
     
-    // Update depth slider if it exists
-    const depthDisplay = document.getElementById('focus-depth-display');
-    if (depthDisplay) depthDisplay.textContent = data.focusDepth.toString();
-  }
-  
-  // Format reality tree for display
-  function formatRealityTree(tree: any, indent: string = ''): string {
-    let result = `${indent}${tree.name} (depth: ${tree.depth})\n`;
-    for (const child of tree.children || []) {
-      result += formatRealityTree(child, indent + '  ');
+    if (tickCountEl) tickCountEl.textContent = state.tick.toString();
+    if (successCountEl) successCountEl.textContent = state.successfulInversions.toString();
+    if (failCountEl) failCountEl.textContent = state.failedInversions.toString();
+    if (manifestedCountEl) manifestedCountEl.textContent = state.manifestedRegions.toString();
+    if (voidCountEl) voidCountEl.textContent = state.voidRegions.toString();
+    
+    if (explanationEl) {
+      explanationEl.textContent = [
+        `INVERSION-BASED AI STATUS`,
+        `─────────────────────────`,
+        `Total inversions: ${state.totalInversions}`,
+        `Success rate: ${successRate}%`,
+        ``,
+        `Wave amplitude: ${state.currentWaveAmplitude.toFixed(4)}`,
+        `Manifested regions: ${state.manifestedRegions}`,
+        `Void regions (black holes): ${state.voidRegions}`,
+        ``,
+        `Successful inversion = Understanding`,
+        `Failed inversion = Black hole`,
+        `Double inversion = True knowledge`
+      ].join('\n');
     }
-    return result;
+    
+    if (waveDisplayEl) {
+      // ASCII wave visualization
+      const wave = inversionEngine.currentWave;
+      const recent = wave.amplitudes.slice(-40);
+      const waveStr = recent.map(a => {
+        const height = Math.round((a + 1) * 5);
+        return '│' + ' '.repeat(Math.max(0, height)) + '●';
+      }).join('\n');
+      waveDisplayEl.textContent = `INVERSION WAVE:\n${waveStr}`;
+    }
   }
   
   // Event listeners
-  if (focusSlider) {
-    focusSlider.addEventListener('input', () => {
-      state.focusValue = parseInt(focusSlider.value);
-    });
-  }
-  
-  if (dispersionSlider) {
-    dispersionSlider.addEventListener('input', () => {
-      state.dispersionValue = parseInt(dispersionSlider.value);
-    });
-  }
-  
-  // Depth slider controls which pentagram layer to focus on
-  if (kcbsRotationSlider) {
-    kcbsRotationSlider.addEventListener('input', () => {
-      // Repurpose rotation slider as depth selector (0-6 for 7 layers)
-      const depth = Math.floor(parseInt(kcbsRotationSlider.value) / 60); // 0-6
-      state.focusDepth = Math.min(depth, PENTAGRAM_DEPTH - 1);
-      pentagramView.setFocusDepth(state.focusDepth);
-      fractalPentagram.setContextFocus(state.focusDepth, state.focusEdge);
-    });
-  }
-  
-  // Context selector controls which edge to focus on
-  if (kcbsContextSelect) {
-    kcbsContextSelect.addEventListener('change', () => {
-      const idx = parseInt(kcbsContextSelect.value);
-      state.focusEdge = idx;
-      pentagramView.setFocusEdge(idx);
-      fractalPentagram.setContextFocus(state.focusDepth, state.focusEdge);
-    });
-  }
-  
   if (tickBtn) {
     console.log('Tick button found, attaching listener');
     tickBtn.addEventListener('click', async () => {
@@ -330,7 +238,7 @@ async function init() {
     runBtn.addEventListener('click', () => {
       if (!state.isRunning) {
         state.isRunning = true;
-        rootReality.start();
+        console.log('Starting continuous simulation...');
         state.tickInterval = window.setInterval(async () => {
           await simulationTick();
         }, DEFAULT_TICK_INTERVAL_MS);
@@ -341,7 +249,7 @@ async function init() {
   if (pauseBtn) {
     pauseBtn.addEventListener('click', () => {
       state.isRunning = false;
-      rootReality.stop();
+      console.log('Pausing simulation...');
       if (state.tickInterval !== null) {
         clearInterval(state.tickInterval);
         state.tickInterval = null;
@@ -363,23 +271,38 @@ async function init() {
     handleResize(sceneCtx, container.clientWidth, container.clientHeight);
   }
   
-  // Start render loop - pentagram rotates continuously as the generative core
+  // Start render loop
   startRenderLoop(sceneCtx, (delta) => {
-    // The fractal pentagram continuously evolves even when simulation is paused
-    // This represents the underlying reality structure always in motion
-    fractalPentagram.tick(delta * 0.5); // Slower background evolution
+    // Wave field always animates
+    waveField.update(delta);
+    
+    // Pentagram shows symmetry structure
+    fractalPentagram.tick(delta * 0.3);
     pentagramView.update(fractalPentagram);
-    observationParticles.update(delta);
+    
+    // Update manifested view
+    manifestedView.update(inversionEngine);
+    
     cameraControls.update();
   });
   
-  console.log('ASI Ontological Simulation initialized');
   console.log('==========================================');
-  console.log('The FRACTAL PENTAGRAM is the generative core.');
-  console.log('Nested pentagrams at golden ratio scales PRODUCE observations.');
-  console.log('- Outer layers: macroscopic observations');
-  console.log('- Inner layers: microscopic/quantum observations');
-  console.log('- φ (phi) ratio: 1.618... connects all scales');
+  console.log('SYMMETRY INVERSION BASED AI');
+  console.log('==========================================');
+  console.log('');
+  console.log('Core principle: INVERSION creates reality');
+  console.log('');
+  console.log('- Each tick attempts to INVERT a new element');
+  console.log('- Successful inversion → MANIFESTED (visible)');
+  console.log('- Failed inversion → VOID (black hole)');
+  console.log('- Inversions form a WAVEFORM');
+  console.log('- Double inversion (X⁻¹⁻¹=X) = true understanding');
+  console.log('');
+  console.log('The visualization shows:');
+  console.log('  🔵 Blue spheres = Manifested reality');
+  console.log('  ⚫ Black spheres = Voids (failed inversions)');
+  console.log('  🌀 Green wave = Inversion waveform');
+  console.log('  ⭐ Pentagram = Symmetry structure');
   console.log('==========================================');
 }
 
