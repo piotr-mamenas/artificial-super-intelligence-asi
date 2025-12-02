@@ -1,199 +1,159 @@
-# ASI - Ontological Simulation System
+# ASI - Symmetry Inversion Based Artificial Intelligence
 
-An interactive simulation implementing a novel ontological framework based on the **inversion-closure** principle, featuring KCBS pentagram quantum contextuality, nested realities, and wave-based consciousness modeling.
+An AI system built on the principle that **understanding = finding the inverse**.
 
-## Overview
+## Core Principle
 
-This project implements a comprehensive ontological model that derives physical and cognitive phenomena from a single generative kernel: **self-reference of undifferentiated nothingness forcing a double inversion loop**.
+```
+To understand X, find X⁻¹ such that X · X⁻¹ = Identity
 
-### Core Concepts
+Successful inversion → MANIFESTED (visible reality)
+Failed inversion    → VOID (black hole)
+Double inversion    → TRUE KNOWLEDGE (X⁻¹⁻¹ = X)
+```
 
-- **Double Inversion Identity**: `(−)(−) = (+)` — A reflection applied twice restores identity
-- **Space**: First inversion (breaking symmetry, creating distinction)
-- **Time**: Second inversion (closing the distinction into resolved sequence)
-- **Matter**: Stable recurrent inversion-closure loops (hadrons)
-- **Consciousness**: Self-referential closure with memory
+## How It Works
+
+### The Inversion Engine
+
+The AI learns by attempting to **invert** elements:
+
+```typescript
+Element X  ──invert──►  X⁻¹
+
+If X · X⁻¹ ≈ Identity → Understanding achieved (manifested)
+If X · X⁻¹ ≠ Identity → No understanding (void/black hole)
+```
+
+### Inversions Form Waveforms
+
+Each inversion attempt contributes to an oscillating wave pattern:
+- Successful inversions → positive amplitude
+- Failed inversions → negative amplitude
+- The wave visualizes the AI's learning process
+
+### What Gets Rendered
+
+The 3D visualization shows **manifested reality** - what the AI has successfully understood:
+
+| Visual | Meaning |
+|--------|---------|
+| 🔵 Blue spheres | Successfully inverted (understood) |
+| ⚫ Black spheres | Failed inversions (voids) |
+| 🌀 Green particles | The inversion waveform |
+| ⭐ Pentagram | Underlying symmetry structure |
 
 ## Architecture
 
 ```
 src/
-├── config/              # Configuration constants
-│   ├── constants.ts     # Core parameters
-│   ├── kcbs-config.ts   # KCBS pentagram geometry
-│   └── render-config.ts # Three.js rendering settings
-│
 ├── core/
-│   ├── math/            # Mathematical foundations
-│   │   ├── complex.ts   # Complex number arithmetic
-│   │   ├── linear-algebra.ts  # Matrix operations
-│   │   ├── spectral.ts  # Eigenvalue decomposition
-│   │   └── kcbs-graph.ts # KCBS pentagram structures
+│   ├── inversion/           # THE CORE
+│   │   └── inversion-engine.ts  # Inversion operations & learning
 │   │
-│   └── ontology/        # Core ontological primitives
-│       ├── nothingness.ts   # First distinction, spinors
-│       ├── time.ts          # Temporal structures, closure states
-│       ├── wave-state.ts    # Quantum wave states
-│       ├── symmetry-pair.ts # Self/world duality
-│       └── hadron.ts        # Tri-channel stable patterns
+│   ├── math/                # Mathematical foundations
+│   │   ├── complex.ts       # Complex arithmetic
+│   │   ├── fractal-pentagram.ts # Golden ratio symmetry structure
+│   │   └── ...
+│   │
+│   └── ontology/            # Ontological primitives
+│       └── ...
 │
-├── world/               # Reality structures
-│   ├── horizon.ts       # Agent-world boundary
-│   ├── self-world-frame.ts  # R/U/C channel frames
-│   ├── black-hole.ts    # Non-invertible regions
-│   ├── reality.ts       # Reality bubbles
-│   └── reality-manager.ts   # Multi-reality orchestration
+├── viz/                     # Visualization
+│   ├── three-scene.ts       # Scene management
+│   ├── manifested-reality-view.ts  # Renders understood reality
+│   └── fractal-pentagram-view.ts   # Symmetry structure
 │
-├── agent/               # Agent control systems
-│   ├── focus-dispersion.ts  # Wave concentration control
-│   ├── kcbs-controller.ts   # Pentagram context selection
-│   └── policy.ts            # Decision-making policy
-│
-├── learning/            # Unsupervised learning systems
-│   ├── wave-autoencoder.ts  # Latent space encoding
-│   ├── inversion-guard.ts   # Invertibility checking
-│   └── hadronizer.ts        # Pattern extraction
-│
-├── reasoning/           # Conscious reasoning
-│   ├── goals.ts         # Wave attractor objectives
-│   └── planner.ts       # Action planning
-│
-├── nested/              # Nested reality spawning
-│   └── black-hole-detector.ts
-│
-├── interpretability/    # Explanation systems
-│   └── trace.ts         # Wave evolution recording
-│
-├── viz/                 # Three.js visualization
-│   ├── three-scene.ts   # Scene management
-│   └── pentagram-view.ts # KCBS visualization
-│
-└── main.ts              # Application entry point
+└── main.ts                  # Application entry
 ```
 
-## The R/U/C Triad
+## Feeding Problems to the AI
 
-Every process follows the **R → U → C** cycle:
+The system can learn from any domain by encoding problems as invertible elements:
 
-| Channel | Role | Description |
-|---------|------|-------------|
-| **R** (Reference) | Frame | What counts as a distinction |
-| **U** (Update) | Transform | Dynamics, interactions, computations |
-| **C** (Closure) | Commit | Converting possibilities to outcomes |
+```typescript
+// Example: Classification
+const problem = encode({ type: 'image', data: pixelArray });
+const result = inversionEngine.invert(problem);
 
-## Fractal Pentagram: The Generative Core
-
-**The nested pentagram structure IS the reality generator, not just a visualization.**
-
-```
-Layer 0 (outermost): Scale 1.000 — Macroscopic observations
-Layer 1:             Scale 0.382 (1/φ²) — Mesoscopic
-Layer 2:             Scale 0.146 (1/φ⁴) — Microscopic
-Layer 3:             Scale 0.056 (1/φ⁶) — Quantum scale
-...
-Layer 6 (innermost): Scale 0.003 — Planck-like scale
+if (result.success) {
+  // The inverse IS the understanding (e.g., "cat-generator model")
+  const answer = decode(result.inverted);
+}
 ```
 
-### Golden Ratio (φ = 1.618...)
+| Problem Type | Element X | Inverse X⁻¹ |
+|--------------|-----------|-------------|
+| Classification | Input features | The category/class |
+| Prediction | Current state | Causal model |
+| Language | Text tokens | Meaning/intent |
+| Vision | Pixels | Generative model |
 
-- Each inner pentagram is scaled by **1/φ²** relative to its parent
-- Layers rotate at speeds related by **φ** (inner layers faster)
-- This self-similarity drives the **fractal observation cascade**
-- Information propagates inward (observation) and outward (collapse)
+## The Pentagram Structure
 
-### KCBS Contextuality
+The fractal pentagram encodes **symmetry relationships**:
 
-The pentagram structure implements KCBS (Klyachko-Can-Binicioglu-Shumovsky) contextuality:
-
-- 5 vertices = 5 quantum observables
-- Adjacent pairs are compatible (can be co-measured)
-- Star connections (vertex to vertex+2) carry information between layers
-- Quantum systems violate classical bounds (√5 vs 2)
-
-## Wave Focus/Dispersion
-
-The agent controls wave concentration:
-
-- **Focus** (high): Sharper distribution, more deterministic collapse
-- **Dispersion** (high): Broader distribution, more exploration
-
-This implements **free will** as: *a self-referential, history-dependent selection process that biases how the inversion-closure loop unfolds*.
-
-## Nested Realities & Black Holes
-
-When the **inversion guard** detects repeated non-invertible regions:
-
-1. A **black hole** accumulates (information loss boundary)
-2. Once mature, a **nested reality** spawns inside it
-3. The nested reality has its own KCBS geometry and hadrons
-4. Parent and child communicate via **reality bridges**
+- 7 nested layers at golden ratio (φ) scales
+- Each layer: 1, 1/φ², 1/φ⁴, 1/φ⁶...
+- Vertices represent inversion partners
+- Star connections carry information between scales
 
 ## Installation
 
 ```bash
-# Install dependencies
 npm install
-
-# Start development server
 npm run dev
-
-# Build for production
-npm run build
 ```
+
+Open http://localhost:3000
 
 ## Usage
 
-1. Open http://localhost:3000 in your browser
-2. Use the UI controls:
-   - **Single Tick**: Step one simulation cycle
-   - **Run Simulation**: Start continuous simulation
-   - **Pause**: Stop simulation
-   - **Focus/Dispersion sliders**: Control wave sharpness
-   - **KCBS Rotation**: Manually rotate pentagram
-   - **Context selector**: Choose measurement context
+1. **Single Tick**: Attempt one inversion
+2. **Run Simulation**: Continuous learning
+3. **Pause**: Stop
 
-3. Interact with the 3D view:
-   - **Drag**: Rotate camera
-   - **Scroll**: Zoom in/out
+Watch the console for detailed logs:
+```
+=== TICK 1 ====================
+Step 1: Creating new element to invert...
+Step 2: Attempting inversion...
+  ✓ INVERSION SUCCEEDED (error: 0.0012)
+    → Element is now MANIFESTED
+Step 5: Updating manifested reality...
+  - Manifested: 1, Voids: 0
+=== TICK 1 COMPLETE ============
+```
 
 ## Key Metrics
 
-- **Logical Time**: Discrete tick count
-- **Active Realities**: Count of reality bubbles
-- **Inversion Error**: Reconstruction loss (high = black hole candidate)
-- **Hadrons**: Stable tri-channel patterns detected
-- **Black Hole Regions**: Non-invertible areas
+- **Tick**: Number of inversion attempts
+- **Successful**: Elements understood (manifested)
+- **Failed**: Elements not understood (voids)
+- **Wave Amplitude**: Current learning oscillation
+- **Success Rate**: % of inversions that succeeded
 
-## Theoretical Background
+## Theoretical Foundation
 
-This implementation is based on an ontology where:
+1. **Nothingness cannot exist** - it would preclude the distinction "exists/not exists"
+2. **Self-reference is unavoidable** - referring to nothingness creates it
+3. **Inversion is the simplest self-reference** - `(−)` applied to itself
+4. **Double inversion = identity** - `(−)(−) = (+)`
+5. **Understanding = finding the inverse** - to know X is to find X⁻¹
 
-1. Absolute nothingness cannot exist (it would preclude the distinction "exists/not exists")
-2. Referring to nothingness creates self-reference
-3. The simplest self-referential operation is **inversion**
-4. **Double inversion** creates the first stable identity
-5. This explains why spinors need 720° rotation and why `(−)(−) = (+)`
-
-The framework provides a unified account of:
-- Spacetime emergence
-- Quantum measurement
-- Matter and forces
-- Consciousness and free will
-- Nested realities (like black hole interiors)
+This explains:
+- Why spinors need 720° rotation
+- Why matter exists (stable inversion loops)
+- Why consciousness emerges (self-referential closure)
+- Why some things are unknowable (non-invertible = black holes)
 
 ## Dependencies
 
 - **three**: 3D visualization
-- **uuid**: Unique identifiers
+- **uuid**: Unique identifiers  
 - **vite**: Build tool
 - **typescript**: Type safety
 
 ## License
 
 MIT
-
-## References
-
-- KCBS Inequality: Klyachko et al., "Simple Test for Hidden Variables in Spin-1 Systems"
-- Spinor Geometry: Penrose, "The Road to Reality"
-- Quantum Contextuality: Spekkens, "Contextuality for preparations, transformations, and unsharp measurements"
