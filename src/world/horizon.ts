@@ -9,6 +9,7 @@
 
 import { v4 as uuidv4 } from 'uuid';
 import { WaveState, createRandomState, createGroundState } from '../core/ontology/wave-state';
+import { WAVE_DIMENSION } from '../config/constants';
 
 export type HorizonDirection = 'INBOUND' | 'OUTBOUND';
 
@@ -50,10 +51,11 @@ export function createHorizon(
 ): Horizon {
   const id = uuidv4();
   const eventBuffer: HorizonWaveEvent[] = [];
+  // All channels must use WAVE_DIMENSION for consistent superposition
   const horizonChannels = channels ?? [
-    { name: 'visual', direction: 'INBOUND', dimension: 16, isActive: true },
-    { name: 'motor', direction: 'OUTBOUND', dimension: 8, isActive: true },
-    { name: 'proprioceptive', direction: 'INBOUND', dimension: 8, isActive: true }
+    { name: 'visual', direction: 'INBOUND', dimension: WAVE_DIMENSION, isActive: true },
+    { name: 'motor', direction: 'OUTBOUND', dimension: WAVE_DIMENSION, isActive: true },
+    { name: 'proprioceptive', direction: 'INBOUND', dimension: WAVE_DIMENSION, isActive: true }
   ];
   
   return {

@@ -120,39 +120,46 @@ async function init() {
   
   // Simulation tick function
   async function simulationTick() {
-    state.logicalTime++;
-    
-    // ============================================
-    // STEP 1: FRACTAL PENTAGRAM GENERATES OBSERVATIONS
-    // ============================================
-    // The pentagram hierarchy IS the source of observations.
-    // Time evolution rotates layers at golden-ratio related speeds.
-    
-    const dt = 0.016; // ~60fps timestep
-    fractalPentagram.tick(dt);
-    
-    // Get observation from the focused depth layer
-    const pentagramObservation = fractalPentagram.getObservation(state.focusDepth);
-    
-    // Inject this observation into the world (pentagram drives reality)
-    injectObservation(fractalPentagram, rootReality.currentFrame.closureState);
-    
-    // Calculate total energy in the pentagram structure
-    state.pentagramEnergy = calculatePentagramEnergy(fractalPentagram);
+    try {
+      state.logicalTime++;
+      console.log(`\n=== TICK ${state.logicalTime} ====================`);
+      
+      // ============================================
+      // STEP 1: FRACTAL PENTAGRAM GENERATES OBSERVATIONS
+      // ============================================
+      console.log('Step 1: Fractal pentagram generating observations...');
+      
+      const dt = 0.016; // ~60fps timestep
+      fractalPentagram.tick(dt);
+      
+      // Get observation from the focused depth layer
+      const pentagramObservation = fractalPentagram.getObservation(state.focusDepth);
+      console.log(`  - Observation from depth ${state.focusDepth}, dimension: ${pentagramObservation.dimension}`);
+      
+      // Inject this observation into the world (pentagram drives reality)
+      injectObservation(fractalPentagram, rootReality.currentFrame.closureState);
+      
+      // Calculate total energy in the pentagram structure
+      state.pentagramEnergy = calculatePentagramEnergy(fractalPentagram);
+      console.log(`  - Pentagram energy: ${state.pentagramEnergy.toFixed(4)}`);
     
     // ============================================
     // STEP 2: WORLD RESPONDS TO PENTAGRAM STATE
     // ============================================
+    console.log('Step 2: World responding to pentagram state...');
     await simulatedWorld.generateObservations();
     await tickReality(rootReality);
+    console.log(`  - Reality tick: ${rootReality.clock.getTick()}`);
     
     const frame = rootReality.currentFrame;
     
     // ============================================
     // STEP 3: AGENT DECIDES BASED ON PENTAGRAM
     // ============================================
+    console.log('Step 3: Agent deciding...');
     const decision = policy.decide(frame);
     const measurementResult = policy.execute(decision, frame);
+    console.log(`  - Decision: context edge ${decision.context.edgeIndex}, confidence ${decision.confidence.toFixed(3)}`);
     
     // Agent's focus selection affects pentagram
     state.focusEdge = decision.context.edgeIndex;
@@ -171,7 +178,9 @@ async function init() {
     // ============================================
     // STEP 5: INVERSION CHECK & BLACK HOLES
     // ============================================
+    console.log('Step 5: Inversion check...');
     const inversionResult = await inversionGuard.check(frame);
+    console.log(`  - Invertible: ${inversionResult.isInvertible}, error: ${inversionResult.reconstructionError.toFixed(4)}`);
     
     const blackHole = await blackHoleDetector.tryUpdate(frame, inversionResult);
     if (blackHole) {
@@ -192,9 +201,11 @@ async function init() {
     // ============================================
     // STEP 6: HADRONIZATION (STABLE PATTERNS)
     // ============================================
+    console.log('Step 6: Hadronization...');
     const traceEntry = frameToTraceEntry(frame);
     await hadronizer.updateFromTraces([traceEntry]);
     rootReality.hadrons = hadronizer.getStableHadrons();
+    console.log(`  - Stable hadrons: ${rootReality.hadrons.length}`);
     
     // ============================================
     // STEP 7: UPDATE VISUALIZATION & UI
@@ -224,6 +235,13 @@ async function init() {
     const reward = inversionResult.isInvertible ? 0.1 : -0.1;
     policy.learn(measurementResult, reward);
     goalSystem.updateFromClosure(frame.id, reward);
+    
+    console.log(`=== TICK ${state.logicalTime} COMPLETE ============\n`);
+    
+    } catch (error) {
+      console.error('Error in simulation tick:', error);
+      throw error;
+    }
   }
   
   // Update UI function
@@ -295,9 +313,17 @@ async function init() {
   }
   
   if (tickBtn) {
+    console.log('Tick button found, attaching listener');
     tickBtn.addEventListener('click', async () => {
-      await simulationTick();
+      console.log('Tick button clicked!');
+      try {
+        await simulationTick();
+      } catch (error) {
+        console.error('Tick failed:', error);
+      }
     });
+  } else {
+    console.error('Tick button not found in DOM!');
   }
   
   if (runBtn) {
