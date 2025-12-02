@@ -81,16 +81,34 @@ Every process follows the **R → U → C** cycle:
 | **U** (Update) | Transform | Dynamics, interactions, computations |
 | **C** (Closure) | Commit | Converting possibilities to outcomes |
 
-## KCBS Pentagram
+## Fractal Pentagram: The Generative Core
 
-The simulation uses the **Klyachko-Can-Binicioglu-Shumovsky** inequality to model quantum contextuality:
+**The nested pentagram structure IS the reality generator, not just a visualization.**
 
-- 5 observables arranged in a pentagon
-- Adjacent pairs are compatible (can be measured together)
-- Non-adjacent pairs are incompatible
+```
+Layer 0 (outermost): Scale 1.000 — Macroscopic observations
+Layer 1:             Scale 0.382 (1/φ²) — Mesoscopic
+Layer 2:             Scale 0.146 (1/φ⁴) — Microscopic
+Layer 3:             Scale 0.056 (1/φ⁶) — Quantum scale
+...
+Layer 6 (innermost): Scale 0.003 — Planck-like scale
+```
+
+### Golden Ratio (φ = 1.618...)
+
+- Each inner pentagram is scaled by **1/φ²** relative to its parent
+- Layers rotate at speeds related by **φ** (inner layers faster)
+- This self-similarity drives the **fractal observation cascade**
+- Information propagates inward (observation) and outward (collapse)
+
+### KCBS Contextuality
+
+The pentagram structure implements KCBS (Klyachko-Can-Binicioglu-Shumovsky) contextuality:
+
+- 5 vertices = 5 quantum observables
+- Adjacent pairs are compatible (can be co-measured)
+- Star connections (vertex to vertex+2) carry information between layers
 - Quantum systems violate classical bounds (√5 vs 2)
-
-The agent selects which **context** (edge) to measure, and the pentagram **rotation** determines observable orientations.
 
 ## Wave Focus/Dispersion
 
