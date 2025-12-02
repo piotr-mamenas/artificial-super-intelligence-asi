@@ -161,7 +161,7 @@ export function createManifestedRealityView(ctx: SceneContext): ManifestedRealit
   /**
    * Update the wave visualization.
    */
-  function updateWaveVisualization(wave: InversionWave, engine: InversionEngine): void {
+  function updateWaveVisualization(wave: InversionWave, _engine: InversionEngine): void {
     // Remove old wave line
     if (waveLine) {
       group.remove(waveLine);

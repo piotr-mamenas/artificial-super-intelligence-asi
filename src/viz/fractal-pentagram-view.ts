@@ -13,11 +13,8 @@ import {
   PentagramLayer,
   PHI,
   PHI_INVERSE_SQUARED,
-  PENTAGRAM_ANGLE,
-  getStarPoints
+  PENTAGRAM_ANGLE
 } from '../core/math/fractal-pentagram';
-import { RENDER_CONFIG } from '../config/render-config';
-import { Complex } from '../core/math/complex';
 
 export interface FractalPentagramView {
   group: THREE.Group;

@@ -11,8 +11,14 @@
  */
 
 import { v4 as uuidv4 } from 'uuid';
-import { Complex, complex, fromPolar, multiply, add, normalize, magnitude } from './complex';
-import { WaveState, createWaveState } from '../ontology/wave-state';
+import { Complex, complex, fromPolar, multiply, normalize } from './complex';
+
+// Simple observation type (replaces WaveState for pentagram observations)
+export interface PentagramObservation {
+  amplitudes: Complex[];
+  depth: number;
+  time: number;
+}
 
 // Golden ratio and related constants
 export const PHI = (1 + Math.sqrt(5)) / 2;           // φ ≈ 1.618
@@ -58,7 +64,7 @@ export interface FractalPentagram {
   
   // Methods
   tick(dt: number): void;
-  getObservation(depth: number): WaveState;
+  getObservation(depth: number): PentagramObservation;
   propagateInward(): void;
   propagateOutward(): void;
   getVertexAmplitude(depth: number, vertex: number): Complex;
@@ -122,23 +128,22 @@ export function createFractalPentagram(maxDepth: number = 7): FractalPentagram {
       this.propagateInward();
     },
     
-    getObservation(depth: number): WaveState {
+    getObservation(depth: number): PentagramObservation {
       if (depth < 0 || depth >= layers.length) {
         depth = Math.max(0, Math.min(layers.length - 1, depth));
       }
       
       const layer = layers[depth];
       
-      // Construct wave state from vertex amplitudes
-      // The 5 vertices map to a 5-dimensional observation space
-      // Extended to full wave dimension by golden ratio interpolation
+      // Construct observation from vertex amplitudes
+      // The 5 vertices map to a 16-dimensional observation space
       const amplitudes: Complex[] = [];
       
       for (let i = 0; i < 16; i++) {
         // Map 16 dimensions to 5 vertices using golden ratio weighting
         const vertexIndex = i % 5;
         const nextVertex = (i + 1) % 5;
-        const t = (i / 16) * 5 - vertexIndex; // Interpolation parameter
+        const t = (i / 16) * 5 - vertexIndex;
         
         const v1 = layer.vertices[vertexIndex];
         const v2 = layer.vertices[nextVertex];
@@ -158,11 +163,11 @@ export function createFractalPentagram(maxDepth: number = 7): FractalPentagram {
         amplitudes.push(multiply(amp, phaseFactor));
       }
       
-      return createWaveState(normalize(amplitudes), {
-        type: 'pentagram-observation',
+      return {
+        amplitudes: normalize(amplitudes),
         depth,
         time: currentTime
-      });
+      };
     },
     
     propagateInward(): void {
@@ -310,79 +315,6 @@ function normalizeLayerAmplitudes(layer: PentagramLayer): void {
       };
     }
   }
-}
-
-/**
- * Inject an observation into the outermost layer.
- * This is how external input enters the pentagram hierarchy.
- */
-export function injectObservation(
-  pentagram: FractalPentagram,
-  observation: WaveState
-): void {
-  const outerLayer = pentagram.layers[0];
-  const amps = Array.from(observation.amplitudes);
-  
-  // Map wave amplitudes to pentagram vertices
-  for (let i = 0; i < 5; i++) {
-    const ampIndex = (i * 3) % Math.min(16, amps.length / 2);
-    outerLayer.vertices[i].amplitude = {
-      re: amps[ampIndex * 2] ?? 0,
-      im: amps[ampIndex * 2 + 1] ?? 0
-    };
-  }
-  
-  normalizeLayerAmplitudes(outerLayer);
-}
-
-/**
- * Collapse observation at a specific depth (measurement).
- * Returns the collapsed wave state and propagates change outward.
- */
-export function collapseAtDepth(
-  pentagram: FractalPentagram,
-  depth: number
-): { outcome: number; waveState: WaveState } {
-  const layer = pentagram.layers[Math.min(depth, pentagram.layers.length - 1)];
-  
-  // Calculate probabilities from amplitudes
-  const probs: number[] = [];
-  for (const v of layer.vertices) {
-    probs.push(v.amplitude.re ** 2 + v.amplitude.im ** 2);
-  }
-  
-  // Normalize
-  const total = probs.reduce((a, b) => a + b, 0);
-  const normalizedProbs = probs.map(p => p / total);
-  
-  // Sample outcome
-  const r = Math.random();
-  let cumulative = 0;
-  let outcome = 0;
-  for (let i = 0; i < 5; i++) {
-    cumulative += normalizedProbs[i];
-    if (r < cumulative) {
-      outcome = i;
-      break;
-    }
-  }
-  
-  // Collapse to outcome vertex
-  for (let i = 0; i < 5; i++) {
-    if (i === outcome) {
-      layer.vertices[i].amplitude = complex(1, 0);
-    } else {
-      layer.vertices[i].amplitude = complex(0, 0);
-    }
-  }
-  
-  // Propagate collapse outward
-  pentagram.propagateOutward();
-  
-  return {
-    outcome,
-    waveState: pentagram.getObservation(depth)
-  };
 }
 
 /**
