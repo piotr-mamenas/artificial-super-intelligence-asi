@@ -68,34 +68,36 @@ export interface HadronTriangle {
 }
 
 // ============================================
-// TRIANGLE GEOMETRY
+// TRIANGLE GEOMETRY (on S¹ with duality)
 // ============================================
 
 /**
- * Compute triangle area using cross product
+ * Compute "area" on the circle
+ * Since we're on S¹ (not S¹×S¹), "area" becomes total arc length
+ * This measures how spread out the three vertices are on the circle
  */
 export function computeTriangleArea(R: PhasePoint, U: PhasePoint, C: PhasePoint): number {
-  const RU = phaseDiff(U, R);
-  const RC = phaseDiff(C, R);
+  // Distances on the circle (using time-phase, space is derived)
+  const RU = Math.abs(phaseDiff(U, R));
+  const UC = Math.abs(phaseDiff(C, U));
+  const CR = Math.abs(phaseDiff(R, C));
   
-  // 2D cross product magnitude = area of parallelogram / 2
-  return Math.abs(RU.φ_t * RC.φ_s - RU.φ_s * RC.φ_t) / 2;
+  // "Area" = perimeter / 2π normalized to [0, 1]
+  // Maximum spread is when vertices are 2π/3 apart
+  const perimeter = RU + UC + CR;
+  return perimeter / (2 * Math.PI);
 }
 
 /**
  * Compute phase coherence of triangle
- * High coherence = small, regular triangle
+ * High coherence = vertices close together on circle
  */
 export function computeTriangleCoherence(h: HadronTriangle): number {
-  // Average spread (lower = more coherent)
-  const avgSpread = (
-    h.R.spread.σ_t + h.R.spread.σ_s +
-    h.U.spread.σ_t + h.U.spread.σ_s +
-    h.C.spread.σ_t + h.C.spread.σ_s
-  ) / 6;
+  // Average spread (σ_s = σ_t by duality)
+  const avgSpread = (h.R.spread.σ_t + h.U.spread.σ_t + h.C.spread.σ_t) / 3;
   
   // Area penalty (larger = less coherent)
-  const areaPenalty = h.area / (Math.PI * Math.PI);
+  const areaPenalty = h.area;
   
   // Coherence inversely related to spread and area
   return 1 / (1 + avgSpread + areaPenalty);

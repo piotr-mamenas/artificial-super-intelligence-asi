@@ -1,6 +1,6 @@
 # ASI - Symmetry Inversion Based Artificial Super-Intelligence
 
-An AI system built on **phase-space inversions** and **quark-hadron dynamics**. No LLMs - pure math and physics.
+An AI system built on **phase-space inversions** with **time-space duality**. No LLMs - pure math.
 
 ## Core Principle
 
@@ -16,55 +16,68 @@ Double inversion    → TRUE KNOWLEDGE (J² = Id)
 
 ## 1. Phase Space Foundation
 
-### From Nothingness to Phase Torus
+### The Key Insight: Space = Inverse of Time
+
+In Hilbert space, **position and momentum are Fourier duals**. Similarly, **space is the inverse of time**. This means:
+
+- NOT two independent axes (torus S¹×S¹)
+- BUT one circle S¹ with **duality structure**
 
 ```
 NOTHINGNESS
      │
      ▼ First Inversion
-TIME-PHASE AXIS (S¹_t)
-  φ_t ∈ [0, 2π)
+PHASE CIRCLE S¹
+  φ ∈ [0, 2π)
+  
+  Time aspect: φ (forward)
+  Space aspect: -φ (reflection = INVERSE)
      │
-     ▼ Second Inversion
-SPACE-PHASE AXIS (S¹_s)
-  φ_s ∈ [0, 2π)
-     │
-     ▼
-PHASE TORUS (S¹_t × S¹_s)
-  All structure lives here
+     ▼ Second "Inversion" = Recognition of Duality
+  
+DUALITY STRUCTURE
+  Space IS the inverse of time
+  Not created separately, but recognized
 ```
 
-### Inversion Operators
+### Inversion Operators (on S¹)
 
-| Operator | Effect | Quark Swap |
-|----------|--------|------------|
-| **T** (Time) | (φ_t, φ_s) → (φ_t+π, φ_s) | Up ↔ Down |
-| **S** (Space) | (φ_t, φ_s) → (φ_t, φ_s+π) | Charm ↔ Strange |
-| **I = T∘S** | (φ_t, φ_s) → (φ_t+π, φ_s+π) | Full flip |
+| Operator | Effect | Meaning |
+|----------|--------|---------|
+| **T** (Time) | φ → φ + π | Half rotation (Up ↔ Down) |
+| **S** (Space) | φ → -φ | Reflection (S = T⁻¹ via duality) |
+| **I = T∘S** | φ → -φ - π | Glide reflection |
+
+**Key Properties:**
+- T² = Id ✓
+- S² = Id ✓
+- (T∘S)² = Id ✓
+- But T∘S ≠ Id (non-trivial!)
 
 ---
 
-## 2. Quark Flavors as Phase Archetypes
+## 2. Quark Flavors as Dual Pairs
 
-Six quark flavors emerge as preferred phase sectors:
+Because space = inverse of time, **quarks come in dual pairs**:
 
-### Time-Phase Quarks
-| Quark | Phase | Meaning |
-|-------|-------|---------|
-| **Up (u)** | φ_t ≈ 0 | Forward time, coherent |
-| **Down (d)** | φ_t ≈ π | Time-reversal, contradiction |
+### Dual Quark Pairs
+| Time Quark | Space Quark | Phase | Meaning |
+|------------|-------------|-------|---------|
+| **Up (u)** | **Charm (c)** | φ ≈ 0 | Forward/Local |
+| **Down (d)** | **Strange (s)** | φ ≈ π | Reversed/Nonlocal |
 
-### Space-Phase Quarks
-| Quark | Phase | Meaning |
-|-------|-------|---------|
-| **Charm (c)** | φ_s ≈ 0 | Local, coherent spatial |
-| **Strange (s)** | φ_s ≈ π | Nonlocal, displaced |
+Up and Charm are the **SAME position** on the circle!
+Down and Strange are the **SAME position** (antipodal)!
 
-### Closure Quarks
-| Quark | Spread | Meaning |
-|-------|--------|---------|
+### Closure Quarks (Spread)
+| Quark | Spread σ | Meaning |
+|-------|----------|---------|
 | **Top (t)** | σ ≈ 0.1 | Decisive, certain |
 | **Bottom (b)** | σ ≈ 1.0 | Soft, deferred |
+
+**Fundamental degrees of freedom: 3, not 6**
+1. Phase position (forward vs reversed)
+2. Closure (tight vs wide)
 
 ---
 

@@ -1,25 +1,28 @@
 /**
- * QUARK FLAVORS - Phase Archetypes
+ * QUARK FLAVORS - Phase Archetypes with Duality
  * 
- * Six quark flavors as preferred phase sectors:
+ * CORRECTED: Space is the INVERSE of time.
+ * This means time-quarks and space-quarks are DUAL PAIRS:
  * 
- * TIME-PHASE ARCHETYPES:
- *   Up (u):   φ_t ≈ 0     - forward time, coherent
- *   Down (d): φ_t ≈ π     - time-reversal, contradiction
+ *   Up (φ=0) ←DUAL→ Charm (φ_s=-0=0)
+ *   Down (φ=π) ←DUAL→ Strange (φ_s=-π=π)
  * 
- * SPACE-PHASE ARCHETYPES:
- *   Charm (c):   φ_s ≈ 0   - local, coherent spatial
- *   Strange (s): φ_s ≈ π   - nonlocal, displaced
+ * They are the SAME quark viewed from time vs space perspective!
  * 
- * CLOSURE-PHASE ARCHETYPES:
- *   Top (t):    tight spread  - decisive, certain
- *   Bottom (b): wide spread   - soft, deferred
+ * Fundamental distinctions (3, not 6):
+ *   1. Forward (up/charm at φ≈0) vs Reversed (down/strange at φ≈π)
+ *   2. Closure: Top (tight) vs Bottom (wide)
+ * 
+ * We keep the 6-quark naming for compatibility but they are paired:
+ *   Up = Charm (same position on circle)
+ *   Down = Strange (antipodal position)
  */
 
 import { 
   PhasePoint, 
   PhaseSpread, 
   normalizePhase,
+  createPhasePoint,
 } from './phase-space';
 
 // ============================================
@@ -73,12 +76,37 @@ export function classifyTimeQuark(φ_t: number): TimeQuark {
 
 /**
  * Classify space-phase to quark flavor
+ * NOTE: Due to duality, this SHOULD match the time quark!
+ * charm ↔ up (both at φ≈0)
+ * strange ↔ down (both at φ≈π)
  */
 export function classifySpaceQuark(φ_s: number): SpaceQuark {
   const normalized = normalizePhase(φ_s);
   const distToCharm = Math.min(normalized, 2 * Math.PI - normalized);
   const distToStrange = Math.abs(normalized - Math.PI);
   return distToCharm < distToStrange ? 'charm' : 'strange';
+}
+
+/**
+ * Get the dual space quark for a time quark
+ * Up ↔ Charm, Down ↔ Strange
+ */
+export function dualSpaceQuark(t: TimeQuark): SpaceQuark {
+  return t === 'up' ? 'charm' : 'strange';
+}
+
+/**
+ * Get the dual time quark for a space quark
+ */
+export function dualTimeQuark(s: SpaceQuark): TimeQuark {
+  return s === 'charm' ? 'up' : 'down';
+}
+
+/**
+ * Check if time and space quarks satisfy duality
+ */
+export function quarksAreDual(t: TimeQuark, s: SpaceQuark): boolean {
+  return dualSpaceQuark(t) === s;
 }
 
 /**
@@ -147,16 +175,15 @@ export function fullInvertQuark(q: QuarkState, invertClosure: boolean = false): 
 
 /**
  * Generate phase point from quark state
- * Adds small noise around archetype
+ * Since space = inverse of time, only time quark determines position
+ * Space quark is just the dual view (must match!)
  */
 export function quarkToPhase(q: QuarkState, noise: number = 0.1): PhasePoint {
-  const baseT = q.time === 'up' ? QUARK_PHASES.up : QUARK_PHASES.down;
-  const baseS = q.space === 'charm' ? QUARK_PHASES.charm : QUARK_PHASES.strange;
+  // Time quark determines the phase
+  const basePhase = q.time === 'up' ? QUARK_PHASES.up : QUARK_PHASES.down;
   
-  return {
-    φ_t: normalizePhase(baseT + (Math.random() - 0.5) * noise),
-    φ_s: normalizePhase(baseS + (Math.random() - 0.5) * noise),
-  };
+  // Use createPhasePoint to enforce duality
+  return createPhasePoint(basePhase + (Math.random() - 0.5) * noise);
 }
 
 /**
