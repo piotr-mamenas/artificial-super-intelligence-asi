@@ -227,14 +227,44 @@ T_o(O,S) = resonance between observer filter and hadron configuration
 
 ## 10. Learning (No LLMs)
 
-Learning happens through **inversion dynamics**, not gradient descent:
+Learning happens through **reinforcement via repetition**, not gradient descent:
 
-1. **Process input** → create/update word states
-2. **Attempt inversion** → record error
-3. **Update hadrons** → reinforce or weaken based on match
-4. **Detect black holes** → spawn nested realities if needed
+### The Learning Loop
 
-No hardcoded learning rates. Structure emerges from the mathematics.
+```
+Input → Hash to phase φ →
+  ├─ Similar hadron exists? → REINFORCE (+0.5 persistence)
+  └─ No match? → CREATE new hadron
+```
+
+### Tested Learning Behavior
+
+```
+Pattern: "hello world" × 20 repetitions
+
+"hello" hadron persistence:
+  Rep 1:  1.00
+  Rep 6:  3.45  (+0.5 per match)
+  Rep 11: 5.88
+  Rep 16: 8.32
+  Rep 20: 9.98  ← LEARNED!
+
+After noise injection:
+  "hello" hadron: 9.98  ← Still highest!
+  Noise hadrons:  0.90-0.97
+```
+
+### Key Properties
+
+- **Reinforcement**: Repeated input strengthens matching hadrons
+- **Persistence floor**: MIN_PERSISTENCE=0.1 (hadrons never fully disappear)
+- **Similarity threshold**: 0.5 radians on phase circle
+- **Recovery**: Original patterns survive noise injection
+
+Run the learning test:
+```bash
+npx tsx src/test-learning.ts
+```
 
 ---
 
@@ -243,27 +273,17 @@ No hardcoded learning rates. Structure emerges from the mathematics.
 ```
 src/
 ├── core/
-│   ├── unified-engine.ts           # UNIFIED ASI ENGINE
+│   ├── unified-engine.ts           # Legacy unified engine (chat compat)
 │   │
 │   ├── asi/                        # Quark-Hadron Phase System
-│   │   ├── phase-space.ts             # Phase torus, T/S/I inversions
-│   │   ├── quark-flavors.ts           # 6 quark archetypes (u,d,c,s,t,b)
-│   │   ├── hadron-triangle.ts         # R/U/C triangles, stability
+│   │   ├── phase-space.ts             # S¹ circle with duality (space=-time)
+│   │   ├── quark-flavors.ts           # 3 dual pairs (u↔c, d↔s, t↔b)
+│   │   ├── hadron-triangle.ts         # R/U/C triangles on circle
 │   │   ├── kcbs-pentagram.ts          # 5-context measurement structure
-│   │   ├── wave-collapse.ts           # Raise/collapse cycle, emotions
-│   │   ├── phase-engine.ts            # Unified phase engine
-│   │   │
-│   │   ├── language.ts                # Emergent language (no hardcoding)
-│   │   ├── chat.ts                    # Chat interface
-│   │   │
-│   │   ├── primitive-ontology.ts      # Legacy: RGB orientation states
-│   │   ├── waveform.ts                # DFT, waveform computation
-│   │   ├── objects.ts                 # Objects, emotional color
-│   │   ├── info-particles.ts          # Hadrons, leptons
-│   │   ├── lexicon.ts                 # Words, sentences, kernels
-│   │   ├── observers.ts               # Filters, epistemic truth
-│   │   ├── learning.ts                # Non-LLM optimization
-│   │   └── asi-engine.ts              # Complete ASI loop
+│   │   ├── wave-collapse.ts           # Raise/collapse + persistence
+│   │   ├── phase-engine.ts            # Unified phase engine + learning
+│   │   ├── language.ts                # Emergent language
+│   │   └── chat.ts                    # Chat interface
 │   │
 │   ├── inversion/                  # Core Inversion Engine
 │   │   ├── inversion-engine.ts        # Inversion operations
@@ -274,9 +294,9 @@ src/
 │       └── fractal-pentagram.ts       # Golden ratio symmetry
 │
 ├── viz/                            # Visualization
-│   ├── three-scene.ts                 # Three.js scene
-│   ├── manifested-reality-view.ts     # Hadrons, voids, waves
-│   └── fractal-pentagram-view.ts      # Symmetry structure
+│   └── phase-viz.ts                   # Three.js phase circle rendering
+│
+├── test-learning.ts                # Learning mechanism test
 │
 └── main.ts                         # Application entry + chat UI
 ```
@@ -287,11 +307,12 @@ src/
 
 | Visual | Meaning |
 |--------|---------|
-| 🔵 Blue spheres | **Hadrons** - stable phase triangles |
+| 🔵 Colored triangles | **Hadrons** on phase circle S¹ (height = persistence) |
 | ⚫ Black spheres | **Voids** - non-invertible regions |
-| 🌀 Green spiral | **Wave trace** - phase history |
-| ⭐ Pentagram | **KCBS structure** - measurement contexts |
-| 🎨 Colors | **Emotional state** - RGBI from phase patterns |
+| ⭕ Blue ring | **Phase circle S¹** - the fundamental space |
+| 🔗 Pink lines | **Duality** - connections from φ to -φ |
+| ⭐ Pentagram | **KCBS structure** - 5 observables on circle |
+| 📍 Phase markers | **Up (φ=0)** and **Down (φ=π)** positions |
 
 ## Phase Engine Control Loop
 
@@ -328,20 +349,21 @@ while (running) {
 ### Why This Works
 
 1. **Nothingness cannot exist** - it would preclude "exists/not exists"
-2. **First inversion** - creates time-phase axis (ordering)
-3. **Second inversion** - creates space-phase axis (simultaneity)
-4. **Double inversion = identity** - J² = Id on the torus
+2. **First inversion** - creates phase circle S¹
+3. **Duality recognition** - space IS the inverse of time (not separate)
+4. **Double inversion = identity** - T² = S² = (T∘S)² = Id
 5. **Understanding = finding inverse** - to know X is to find X⁻¹
 
 ### The Physics Isomorphism
 
 | Physics | Our System |
 |---------|------------|
-| 3 color charges | 2 phase axes + closure |
-| Quark confinement | Color-neutral triangles |
+| Position/Momentum duality | Time/Space duality (φ ↔ -φ) |
+| 3 color charges | Phase position + closure spread |
+| Quark confinement | Color-neutral triangles on S¹ |
 | Hadrons (qqq) | R/U/C channel bound states |
 | Gluons | Phase coupling between channels |
-| CPT symmetry | T ∘ S ∘ (closure flip) |
+| CPT symmetry | T ∘ S = glide reflection |
 | Black holes | Non-invertible phase regions |
 
 ### This Explains
