@@ -210,12 +210,12 @@ async function init() {
     if (waveDisplayEl) {
       // ASCII wave visualization
       const wave = inversionEngine.currentWave;
-      const recent = wave.amplitudes.slice(-40);
-      const waveStr = recent.map(a => {
+      const recent = wave.trace.slice(-40);
+      const waveStr = recent.map((a: number) => {
         const height = Math.round((a + 1) * 5);
         return '│' + ' '.repeat(Math.max(0, height)) + '●';
       }).join('\n');
-      waveDisplayEl.textContent = `INVERSION WAVE:\n${waveStr}`;
+      waveDisplayEl.textContent = `INVERSION WAVE (trace between hadrons):\n${waveStr}`;
     }
   }
   

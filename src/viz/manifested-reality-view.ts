@@ -11,8 +11,8 @@ import * as THREE from 'three';
 import { SceneContext } from './three-scene';
 import { 
   InversionEngine, 
-  ManifestRegion, 
-  VoidRegion,
+  Hadron, 
+  Void,
   InversionWave
 } from '../core/inversion/inversion-engine';
 
@@ -63,15 +63,15 @@ export function createManifestedRealityView(ctx: SceneContext): ManifestedRealit
    * Update visualization from engine state.
    */
   function update(engine: InversionEngine): void {
-    const manifested = engine.getManifestedRegions();
-    const voids = engine.getVoidRegions();
+    const hadrons = engine.getHadrons();
+    const voidsList = engine.getVoids();
     const wave = engine.currentWave;
     
-    // Update manifested regions
-    updateManifestRegions(manifested);
+    // Update hadrons (stable excitations)
+    updateHadrons(hadrons);
     
-    // Update void regions
-    updateVoidRegions(voids);
+    // Update voids (non-invertible regions)
+    updateVoids(voidsList);
     
     // Update wave visualization
     updateWaveVisualization(wave, engine);
@@ -80,9 +80,9 @@ export function createManifestedRealityView(ctx: SceneContext): ManifestedRealit
   /**
    * Update manifested region meshes.
    */
-  function updateManifestRegions(regions: ManifestRegion[]): void {
+  function updateHadrons(hadrons: Hadron[]): void {
     // Ensure we have enough meshes
-    while (manifestMeshes.length < regions.length) {
+    while (manifestMeshes.length < hadrons.length) {
       const mesh = new THREE.Mesh(sphereGeom, manifestMaterial.clone());
       mesh.castShadow = true;
       mesh.receiveShadow = true;
@@ -94,25 +94,25 @@ export function createManifestedRealityView(ctx: SceneContext): ManifestedRealit
     for (let i = 0; i < manifestMeshes.length; i++) {
       const mesh = manifestMeshes[i];
       
-      if (i < regions.length) {
-        const region = regions[i];
+      if (i < hadrons.length) {
+        const hadron = hadrons[i];
         
         // Position
-        mesh.position.set(region.center[0], region.center[1], region.center[2]);
+        mesh.position.set(hadron.position[0], hadron.position[1], hadron.position[2]);
         
-        // Scale based on intensity
-        const scale = region.radius * (0.5 + region.intensity);
+        // Scale based on energy
+        const scale = hadron.radius * (0.5 + hadron.energy);
         mesh.scale.setScalar(scale);
         
-        // Color from region
+        // Color from hadron
         const mat = mesh.material as THREE.MeshPhongMaterial;
-        mat.color.setRGB(region.color[0], region.color[1], region.color[2]);
+        mat.color.setRGB(hadron.color[0], hadron.color[1], hadron.color[2]);
         mat.emissive.setRGB(
-          region.color[0] * 0.3,
-          region.color[1] * 0.3,
-          region.color[2] * 0.3
+          hadron.color[0] * 0.3,
+          hadron.color[1] * 0.3,
+          hadron.color[2] * 0.3
         );
-        mat.opacity = 0.5 + region.intensity * 0.5;
+        mat.opacity = 0.5 + hadron.energy * 0.5;
         
         mesh.visible = true;
       } else {
@@ -124,9 +124,9 @@ export function createManifestedRealityView(ctx: SceneContext): ManifestedRealit
   /**
    * Update void region meshes.
    */
-  function updateVoidRegions(regions: VoidRegion[]): void {
+  function updateVoids(voidsList: Void[]): void {
     // Ensure we have enough meshes
-    while (voidMeshes.length < regions.length) {
+    while (voidMeshes.length < voidsList.length) {
       const mesh = new THREE.Mesh(voidGeom, voidMaterial.clone());
       group.add(mesh);
       voidMeshes.push(mesh);
@@ -136,19 +136,19 @@ export function createManifestedRealityView(ctx: SceneContext): ManifestedRealit
     for (let i = 0; i < voidMeshes.length; i++) {
       const mesh = voidMeshes[i];
       
-      if (i < regions.length) {
-        const region = regions[i];
+      if (i < voidsList.length) {
+        const v = voidsList[i];
         
         // Position
-        mesh.position.set(region.center[0], region.center[1], region.center[2]);
+        mesh.position.set(v.position[0], v.position[1], v.position[2]);
         
         // Scale based on depth
-        const scale = region.radius * (1 + region.depth);
+        const scale = v.radius * (1 + v.depth);
         mesh.scale.setScalar(scale);
         
-        // Darker with more failed attempts
+        // Darker with more inversion error
         const mat = mesh.material as THREE.MeshBasicMaterial;
-        const darkness = Math.min(1, region.failedAttempts * 0.1);
+        const darkness = Math.min(1, v.inversionError);
         mat.opacity = 0.5 + darkness * 0.5;
         
         mesh.visible = true;
@@ -170,7 +170,7 @@ export function createManifestedRealityView(ctx: SceneContext): ManifestedRealit
     
     // Create wave path from amplitude history
     const points: THREE.Vector3[] = [];
-    const amplitudes = wave.amplitudes;
+    const amplitudes = wave.trace;
     const count = Math.min(amplitudes.length, 200);
     
     for (let i = 0; i < count; i++) {
