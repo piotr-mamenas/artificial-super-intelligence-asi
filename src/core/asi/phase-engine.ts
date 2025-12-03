@@ -160,6 +160,7 @@ export function stepPhaseEngine(state: PhaseEngineState): PhaseEngineState {
 
 /**
  * Process input text through the phase engine
+ * LEARNING: Reinforces existing similar hadrons, creates new if none match
  */
 export function processTextInput(
   state: PhaseEngineState,
@@ -168,7 +169,11 @@ export function processTextInput(
   // Tokenize
   const tokens = text.toLowerCase().split(/\s+/).filter(t => t.length > 0);
   
-  // For each token, create a phase perturbation
+  // Track reinforcements (for debugging, not used in return)
+  let _reinforced = 0;
+  let _created = 0;
+  
+  // For each token, create or reinforce hadrons
   for (const token of tokens) {
     // Hash token to phase point
     const hash = hashToken(token);
@@ -178,24 +183,45 @@ export function processTextInput(
     
     // Determine quarks from phase (space quark is dual of time quark)
     const timeQuark = classifyTimeQuark(phase.φ_t);
-    const spaceQuark = classifySpaceQuark(phase.φ_s);  // Will match due to duality
+    const spaceQuark = classifySpaceQuark(phase.φ_s);
     
-    // Create hadron candidate from token
-    const tokenQuark: QuarkState = {
-      time: timeQuark,
-      space: spaceQuark,
-      closure: 'top',  // Default to decisive
-    };
+    // Check if similar hadron already exists
+    const SIMILARITY_THRESHOLD = 0.5;  // Phase distance threshold
+    let foundMatch = false;
     
-    // Add as new hadron if stable
-    const newHadron = createHadron(
-      tokenQuark,
-      { ...tokenQuark, closure: 'bottom' },  // Variation
-      tokenQuark
-    );
+    for (const hadron of state.cycle.hadrons) {
+      // Check if R vertex is close to this token's phase
+      const dist = Math.abs(hadron.R.phase.φ_t - phase.φ_t);
+      const normalizedDist = Math.min(dist, 2 * Math.PI - dist);  // Handle wrap-around
+      
+      if (normalizedDist < SIMILARITY_THRESHOLD) {
+        // REINFORCE existing hadron
+        hadron.persistence = Math.min(10, hadron.persistence + 0.5);
+        hadron.lastSeen = Date.now();
+        foundMatch = true;
+        _reinforced++;
+        break;  // Only reinforce one match per token
+      }
+    }
     
-    if (isStableTriangle(newHadron)) {
-      state.cycle.hadrons.push(newHadron);
+    // If no match, create new hadron
+    if (!foundMatch) {
+      const tokenQuark: QuarkState = {
+        time: timeQuark,
+        space: spaceQuark,
+        closure: 'top',
+      };
+      
+      const newHadron = createHadron(
+        tokenQuark,
+        { ...tokenQuark, closure: 'bottom' },
+        tokenQuark
+      );
+      
+      if (isStableTriangle(newHadron)) {
+        state.cycle.hadrons.push(newHadron);
+        _created++;
+      }
     }
   }
   
@@ -220,16 +246,22 @@ export function processTextInput(
 }
 
 /**
- * Hash token to phase coordinates
+ * Hash token to phase coordinate
+ * Uses better distribution across the circle
  */
 function hashToken(token: string): { t: number; s: number } {
-  let t = 0, s = 0;
+  // FNV-1a style hash for better distribution
+  let hash = 2166136261;
   for (let i = 0; i < token.length; i++) {
-    const c = token.charCodeAt(i);
-    t += c * (i + 1) * 0.1;
-    s += c * (token.length - i) * 0.1;
+    hash ^= token.charCodeAt(i);
+    hash = (hash * 16777619) >>> 0;  // Keep as 32-bit
   }
-  return { t: t % (2 * Math.PI), s: s % (2 * Math.PI) };
+  
+  // Map to phase circle [0, 2π)
+  const t = (hash / 0xFFFFFFFF) * 2 * Math.PI;
+  
+  // s is derived from t by duality (but we return both for compatibility)
+  return { t, s: (2 * Math.PI - t) % (2 * Math.PI) };
 }
 
 // ============================================
