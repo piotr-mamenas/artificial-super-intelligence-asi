@@ -157,35 +157,48 @@ export function collapseWave(
 
 /**
  * Update hadron weights based on collapse result
+ * FIXED: More stable persistence - hadrons don't disappear quickly
  */
 export function updateHadrons(
   hadrons: HadronTriangle[],
   collapse: CollapseResult
 ): HadronTriangle[] {
+  const MIN_PERSISTENCE = 0.1;    // Never go below this
+  const DECAY_RATE = 0.02;        // Slow decay on failure (was 0.1)
+  const GROWTH_RATE = 0.3;        // Moderate growth on success
+  const MAX_PERSISTENCE = 10;     // Cap to prevent unbounded growth
+  
   return hadrons.map(h => {
     // Compute how well this hadron matches the collapse
     let matchScore = 0;
     for (const channel of [h.R, h.U, h.C]) {
-      const dist = Math.sqrt(
-        Math.pow(collapse.collapsedPhase.φ_t - channel.phase.φ_t, 2) +
-        Math.pow(collapse.collapsedPhase.φ_s - channel.phase.φ_s, 2)
-      );
+      // Use single-dimension distance (duality model)
+      const dist = Math.abs(collapse.collapsedPhase.φ_t - channel.phase.φ_t);
       matchScore += 1 / (1 + dist);
     }
     matchScore /= 3;
     
     // Update persistence based on match
-    const newPersistence = collapse.inversionSuccess
-      ? h.persistence + matchScore
-      : h.persistence - (1 - matchScore) * 0.1;
+    let newPersistence: number;
+    if (collapse.inversionSuccess) {
+      // Success: grow based on match
+      newPersistence = h.persistence + matchScore * GROWTH_RATE;
+    } else {
+      // Failure: slow decay, but matching hadrons decay less
+      newPersistence = h.persistence - DECAY_RATE * (1 - matchScore);
+    }
+    
+    // Clamp persistence
+    newPersistence = Math.max(MIN_PERSISTENCE, Math.min(MAX_PERSISTENCE, newPersistence));
     
     return {
       ...h,
-      persistence: Math.max(0, newPersistence),
+      persistence: newPersistence,
       lastSeen: Date.now(),
       coherence: computeTriangleCoherence(h),
     };
-  }).filter(h => h.persistence > 0.01);  // Remove dead hadrons
+  });
+  // REMOVED: No longer filtering out hadrons - they persist
 }
 
 // ============================================

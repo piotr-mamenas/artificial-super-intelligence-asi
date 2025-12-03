@@ -13,10 +13,10 @@
  */
 
 import {
-  PhasePoint,
   createFromNothingness,
   firstInversion,
   secondInversion,
+  createPhasePoint,
 } from './phase-space';
 
 import {
@@ -172,14 +172,13 @@ export function processTextInput(
   for (const token of tokens) {
     // Hash token to phase point
     const hash = hashToken(token);
-    const phase: PhasePoint = {
-      φ_t: (hash.t % (2 * Math.PI)),
-      φ_s: (hash.s % (2 * Math.PI)),
-    };
     
-    // Determine quark from phase
+    // DUALITY: Use createPhasePoint - space is derived from time
+    const phase = createPhasePoint(hash.t % (2 * Math.PI));
+    
+    // Determine quarks from phase (space quark is dual of time quark)
     const timeQuark = classifyTimeQuark(phase.φ_t);
-    const spaceQuark = classifySpaceQuark(phase.φ_s);
+    const spaceQuark = classifySpaceQuark(phase.φ_s);  // Will match due to duality
     
     // Create hadron candidate from token
     const tokenQuark: QuarkState = {

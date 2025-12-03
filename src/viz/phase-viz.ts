@@ -136,52 +136,97 @@ function buildAxes(group: THREE.Group) {
 }
 
 function buildPentagram(group: THREE.Group) {
-  const pent = createKCBSPentagram(0, 5);
+  // DUALITY MODEL: Pentagram on the CIRCLE S¹
+  // 5 observables equally spaced around the circle
+  const circleRadius = 5;
+  const pent = createKCBSPentagram(0, 1);  // Unit scale, we'll place on circle
+  
   const edgeMat = new THREE.LineBasicMaterial({ color: 0x8888ff, transparent: true, opacity: 0.6 });
   const starMat = new THREE.LineBasicMaterial({ color: 0xffaa44, transparent: true, opacity: 0.4 });
   
+  // Convert phase to position on circle
+  const phaseToPos = (φ: number, y: number = 0.1) => new THREE.Vector3(
+    Math.cos(φ) * circleRadius,
+    y,
+    Math.sin(φ) * circleRadius
+  );
+  
   // Pentagon edges
   for (let i = 0; i < 5; i++) {
-    const o1 = pent.observables[i].direction;
-    const o2 = pent.observables[(i + 1) % 5].direction;
+    const o1 = pent.observables[i].direction.φ_t;
+    const o2 = pent.observables[(i + 1) % 5].direction.φ_t;
     const geom = new THREE.BufferGeometry().setFromPoints([
-      new THREE.Vector3(o1.φ_t, 0.1, o1.φ_s),
-      new THREE.Vector3(o2.φ_t, 0.1, o2.φ_s),
+      phaseToPos(o1),
+      phaseToPos(o2),
     ]);
     group.add(new THREE.Line(geom, edgeMat));
   }
   
-  // Inner star
+  // Inner star (skip-2 connections)
   for (let i = 0; i < 5; i++) {
-    const o1 = pent.observables[i].direction;
-    const o2 = pent.observables[(i + 2) % 5].direction;
+    const o1 = pent.observables[i].direction.φ_t;
+    const o2 = pent.observables[(i + 2) % 5].direction.φ_t;
     const geom = new THREE.BufferGeometry().setFromPoints([
-      new THREE.Vector3(o1.φ_t, 0.1, o1.φ_s),
-      new THREE.Vector3(o2.φ_t, 0.1, o2.φ_s),
+      phaseToPos(o1),
+      phaseToPos(o2),
     ]);
     group.add(new THREE.Line(geom, starMat));
   }
   
-  // Nodes
+  // Nodes on the circle
   const nodeMat = new THREE.MeshPhongMaterial({ color: 0xaaaaff, emissive: 0x4444aa, emissiveIntensity: 0.3 });
   for (const obs of pent.observables) {
-    const mesh = new THREE.Mesh(new THREE.SphereGeometry(0.15, 8, 8), nodeMat);
-    mesh.position.set(obs.direction.φ_t, 0.1, obs.direction.φ_s);
+    const mesh = new THREE.Mesh(new THREE.SphereGeometry(0.2, 12, 12), nodeMat);
+    const pos = phaseToPos(obs.direction.φ_t);
+    mesh.position.copy(pos);
     group.add(mesh);
   }
 }
 
 function buildTorus(group: THREE.Group) {
-  const geom = new THREE.TorusGeometry(6, 0.05, 8, 50);
-  const mat = new THREE.MeshPhongMaterial({ color: 0x444466, transparent: true, opacity: 0.3 });
+  // DUALITY MODEL: Just ONE circle (not a torus)
+  // The "torus" becomes a single ring representing S¹
   
-  const t1 = new THREE.Mesh(geom, mat);
-  t1.rotation.x = Math.PI / 2;
-  group.add(t1);
+  const circleRadius = 5;
   
-  const t2 = new THREE.Mesh(geom.clone(), mat.clone());
-  t2.rotation.z = Math.PI / 2;
-  group.add(t2);
+  // Main phase circle
+  const circleGeom = new THREE.TorusGeometry(circleRadius, 0.03, 8, 100);
+  const circleMat = new THREE.MeshPhongMaterial({ 
+    color: 0x6688aa, 
+    transparent: true, 
+    opacity: 0.5,
+    emissive: 0x334466,
+    emissiveIntensity: 0.2
+  });
+  const circle = new THREE.Mesh(circleGeom, circleMat);
+  circle.rotation.x = Math.PI / 2;
+  group.add(circle);
+  
+  // Phase markers at key positions
+  const markerMat = new THREE.MeshPhongMaterial({ color: 0xaaaacc, emissive: 0x444466 });
+  const markers = [
+    { φ: 0, label: 'Up/Charm' },
+    { φ: Math.PI, label: 'Down/Strange' },
+  ];
+  
+  for (const { φ } of markers) {
+    const marker = new THREE.Mesh(new THREE.SphereGeometry(0.15, 8, 8), markerMat);
+    marker.position.set(
+      Math.cos(φ) * circleRadius,
+      0,
+      Math.sin(φ) * circleRadius
+    );
+    group.add(marker);
+  }
+  
+  // Duality indicator: line from φ to -φ
+  const dualMat = new THREE.LineBasicMaterial({ color: 0xff66ff, transparent: true, opacity: 0.3 });
+  for (let φ = 0; φ < Math.PI; φ += Math.PI / 4) {
+    const p1 = new THREE.Vector3(Math.cos(φ) * circleRadius, 0, Math.sin(φ) * circleRadius);
+    const p2 = new THREE.Vector3(Math.cos(-φ) * circleRadius, 0, Math.sin(-φ) * circleRadius);
+    const geom = new THREE.BufferGeometry().setFromPoints([p1, p2]);
+    group.add(new THREE.Line(geom, dualMat));
+  }
 }
 
 function createTextSprite(text: string): THREE.Sprite {
@@ -223,42 +268,71 @@ function clearGroup(group: THREE.Group) {
 export function updateHadrons(group: THREE.Group, hadrons: HadronTriangle[]) {
   clearGroup(group);
   
-  const scale = 2;
+  // DUALITY MODEL: Place hadrons ON THE CIRCLE S¹
+  // X = cos(φ_t) * radius, Z = sin(φ_t) * radius
+  // Y = persistence (height shows stability)
+  
+  const circleRadius = 5;
+  
   for (const h of hadrons) {
-    const yOffset = h.coherence * 3;
+    // Persistence affects height and opacity
+    const persistenceNorm = Math.min(h.persistence / 5, 1);  // Normalize to 0-1
+    const yBase = 0.5 + persistenceNorm * 3;  // Height based on persistence
+    const opacity = 0.3 + persistenceNorm * 0.5;
     
-    // Vertex positions
-    const rPos = new THREE.Vector3(h.R.phase.φ_t * scale - Math.PI * scale, yOffset, h.R.phase.φ_s * scale - Math.PI * scale);
-    const uPos = new THREE.Vector3(h.U.phase.φ_t * scale - Math.PI * scale, yOffset + 0.3, h.U.phase.φ_s * scale - Math.PI * scale);
-    const cPos = new THREE.Vector3(h.C.phase.φ_t * scale - Math.PI * scale, yOffset + 0.6, h.C.phase.φ_s * scale - Math.PI * scale);
+    // Place vertices ON the phase circle (using φ_t, space is inverse)
+    const rAngle = h.R.phase.φ_t;
+    const uAngle = h.U.phase.φ_t;
+    const cAngle = h.C.phase.φ_t;
     
-    // Triangle outline
+    const rPos = new THREE.Vector3(
+      Math.cos(rAngle) * circleRadius,
+      yBase,
+      Math.sin(rAngle) * circleRadius
+    );
+    const uPos = new THREE.Vector3(
+      Math.cos(uAngle) * circleRadius,
+      yBase + 0.3,
+      Math.sin(uAngle) * circleRadius
+    );
+    const cPos = new THREE.Vector3(
+      Math.cos(cAngle) * circleRadius,
+      yBase + 0.6,
+      Math.sin(cAngle) * circleRadius
+    );
+    
+    // Triangle outline - thicker for stable hadrons
     const lineGeom = new THREE.BufferGeometry().setFromPoints([rPos, uPos, cPos, rPos]);
     const lineMat = new THREE.LineBasicMaterial({
       color: getQuarkColor(h.R.quark.time),
       transparent: true,
-      opacity: 0.5 + h.persistence * 0.3
+      opacity: opacity
     });
     group.add(new THREE.Line(lineGeom, lineMat));
     
-    // Vertex spheres
+    // Vertex spheres - size based on persistence
+    const baseSize = 0.1 + persistenceNorm * 0.15;
     const vertices = [
-      { pos: rPos, color: h.R.quark.time, size: 0.15 },
-      { pos: uPos, color: h.U.quark.space, size: 0.12 },
-      { pos: cPos, color: h.C.quark.closure, size: 0.10 },
+      { pos: rPos, color: h.R.quark.time, size: baseSize },
+      { pos: uPos, color: h.U.quark.space, size: baseSize * 0.8 },
+      { pos: cPos, color: h.C.quark.closure, size: baseSize * 0.6 },
     ];
     
     for (const { pos, color, size } of vertices) {
       const c = getQuarkColor(color);
       const mesh = new THREE.Mesh(
-        new THREE.SphereGeometry(size, 8, 8),
-        new THREE.MeshPhongMaterial({ color: c, emissive: c, emissiveIntensity: 0.3 })
+        new THREE.SphereGeometry(size, 12, 12),
+        new THREE.MeshPhongMaterial({ 
+          color: c, 
+          emissive: c, 
+          emissiveIntensity: 0.2 + persistenceNorm * 0.3 
+        })
       );
       mesh.position.copy(pos);
       group.add(mesh);
     }
     
-    // Filled face
+    // Filled face - more opaque for stable hadrons
     const faceGeom = new THREE.BufferGeometry();
     faceGeom.setAttribute('position', new THREE.BufferAttribute(
       new Float32Array([rPos.x, rPos.y, rPos.z, uPos.x, uPos.y, uPos.z, cPos.x, cPos.y, cPos.z]), 3
@@ -266,10 +340,24 @@ export function updateHadrons(group: THREE.Group, hadrons: HadronTriangle[]) {
     const faceMat = new THREE.MeshBasicMaterial({
       color: getQuarkColor(h.R.quark.time),
       transparent: true,
-      opacity: 0.15,
+      opacity: 0.05 + persistenceNorm * 0.2,
       side: THREE.DoubleSide
     });
     group.add(new THREE.Mesh(faceGeom, faceMat));
+    
+    // Connection line to center (shows binding)
+    if (h.persistence > 1) {
+      const centerLine = new THREE.BufferGeometry().setFromPoints([
+        new THREE.Vector3(0, yBase, 0),
+        rPos
+      ]);
+      const centerMat = new THREE.LineBasicMaterial({
+        color: 0x444488,
+        transparent: true,
+        opacity: 0.2
+      });
+      group.add(new THREE.Line(centerLine, centerMat));
+    }
   }
 }
 
