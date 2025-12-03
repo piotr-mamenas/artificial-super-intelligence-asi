@@ -1,10 +1,25 @@
 /**
  * CHAT MODULE - Interactive communication with the ASI
  * 
- * Language is learned dynamically through inversions.
- * No hardcoded responses - ASI learns from conversation.
+ * NOW USING PHASE ENGINE:
+ * - Learning through hadron reinforcement
+ * - Response generation from learned patterns
+ * - Token registry for retrieval
  */
 
+import {
+  createPhaseEngine,
+  processTextInput,
+  stepPhaseEngine,
+  generateFromLearned,
+  getLearnedPatterns,
+  getPhaseEngineStats,
+  getVocabularyStats as getPhaseVocabStats,
+  PhaseEngineState,
+} from './phase-engine';
+
+// Legacy imports for backwards compatibility
+import { createUnifiedASIEngine, UnifiedASIEngine } from '../unified-engine';
 import { 
   processInput, 
   updateFromInversion, 
@@ -12,7 +27,6 @@ import {
   analyzeSentiment,
   getVocabularyStats
 } from './language';
-import { createUnifiedASIEngine, UnifiedASIEngine } from '../unified-engine';
 
 // Chat message type
 export interface ChatMessage {
@@ -26,7 +40,18 @@ export interface ChatMessage {
   voidCount?: number;
 }
 
-// Chat session
+// Chat session using Phase Engine
+export interface PhaseChatSession {
+  messages: ChatMessage[];
+  phaseEngine: PhaseEngineState;
+  
+  send(message: string): ChatMessage;
+  getHistory(): ChatMessage[];
+  clear(): void;
+  getLearnedPatterns(): { tokens: string[]; persistence: number }[];
+}
+
+// Legacy chat session (backwards compatible)
 export interface ChatSession {
   messages: ChatMessage[];
   engine: UnifiedASIEngine;
@@ -132,12 +157,125 @@ export function createChatSession(): ChatSession {
   };
 }
 
+// ============================================
+// NEW PHASE-BASED CHAT SESSION
+// ============================================
+
+/**
+ * Create a chat session using the new Phase Engine
+ * Learning happens through hadron reinforcement
+ */
+export function createPhaseChatSession(): PhaseChatSession {
+  let phaseEngine = createPhaseEngine();
+  const messages: ChatMessage[] = [];
+  
+  // Initial greeting
+  const greeting: ChatMessage = {
+    id: generateId(),
+    role: 'asi',
+    content: '[Phase Engine initialized. I learn through inversions. Teach me by chatting.]',
+    timestamp: new Date(),
+    hadronCount: 0,
+  };
+  messages.push(greeting);
+  
+  function send(userMessage: string): ChatMessage {
+    // Create user message
+    const userMsg: ChatMessage = {
+      id: generateId(),
+      role: 'user',
+      content: userMessage,
+      timestamp: new Date(),
+    };
+    messages.push(userMsg);
+    
+    // STEP 1: Process input - registers tokens, creates/reinforces hadrons
+    const beforeHadrons = phaseEngine.cycle.hadrons.length;
+    const { state: newState, result: collapseResult } = processTextInput(phaseEngine, userMessage);
+    phaseEngine = newState;
+    const afterHadrons = phaseEngine.cycle.hadrons.length;
+    const newHadrons = afterHadrons - beforeHadrons;
+    
+    // STEP 2: Step the wave cycle
+    phaseEngine = stepPhaseEngine(phaseEngine);
+    
+    // STEP 3: Get stats
+    const stats = getPhaseEngineStats(phaseEngine);
+    const vocabStats = getPhaseVocabStats(phaseEngine);
+    
+    // STEP 4: Build informative response
+    const responseParts: string[] = [];
+    
+    // Show token processing result
+    const tokens = userMessage.toLowerCase().split(/\s+/).filter(t => t.length > 0);
+    if (tokens.length > 0) {
+      responseParts.push(`Processed: ${tokens.length} tokens`);
+    }
+    
+    // Show hadron formation
+    if (newHadrons > 0) {
+      responseParts.push(`+${newHadrons} hadrons`);
+    } else {
+      responseParts.push(`Reinforced existing patterns`);
+    }
+    
+    // Show collapse result
+    if (collapseResult.inversionSuccess) {
+      responseParts.push('✓ Inversion');
+    }
+    
+    // Show learned response
+    const learnedResponse = generateFromLearned(phaseEngine, userMessage, 8);
+    responseParts.push(`→ ${learnedResponse}`);
+    
+    // Final stats
+    const statsStr = `[H:${stats.hadronCount} V:${vocabStats.uniqueTokens} ${stats.emotion.R > 0.5 ? '♥' : '○'}]`;
+    
+    const asiMsg: ChatMessage = {
+      id: generateId(),
+      role: 'asi',
+      content: responseParts.join(' | ') + ' ' + statsStr,
+      timestamp: new Date(),
+      hadronCount: stats.hadronCount,
+    };
+    messages.push(asiMsg);
+    
+    return asiMsg;
+  }
+  
+  function getHistory(): ChatMessage[] {
+    return [...messages];
+  }
+  
+  function clear(): void {
+    phaseEngine = createPhaseEngine();
+    messages.length = 0;
+    messages.push(greeting);
+  }
+  
+  function getLearnedPatternsWrapper(): { tokens: string[]; persistence: number }[] {
+    return getLearnedPatterns(phaseEngine, 10).map(p => ({
+      tokens: p.tokens,
+      persistence: p.persistence,
+    }));
+  }
+  
+  return {
+    messages,
+    phaseEngine,
+    send,
+    getHistory,
+    clear,
+    getLearnedPatterns: getLearnedPatternsWrapper,
+  };
+}
+
 function generateId(): string {
   return Math.random().toString(36).substring(2, 9);
 }
 
-// Create chat UI elements
-export function createChatUI(container: HTMLElement, session: ChatSession): {
+// Create chat UI elements (works with both legacy and phase chat sessions)
+export function createChatUI(container: HTMLElement, session: ChatSession | PhaseChatSession): {
   addMessage: (msg: ChatMessage) => void;
   scrollToBottom: () => void;
 } {

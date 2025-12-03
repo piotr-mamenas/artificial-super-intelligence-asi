@@ -7,7 +7,16 @@
  * 3. System should "recognize" the pattern (high persistence hadrons)
  */
 
-import { createPhaseEngine, stepPhaseEngine, processTextInput, getPhaseEngineStats, attemptFullInversion } from './core/asi/phase-engine';
+import { 
+  createPhaseEngine, 
+  stepPhaseEngine, 
+  processTextInput, 
+  getPhaseEngineStats, 
+  attemptFullInversion,
+  getLearnedPatterns,
+  generateFromLearned,
+  getVocabularyStats
+} from './core/asi/phase-engine';
 import { hadronSignature } from './core/asi/hadron-triangle';
 
 // ============================================
@@ -139,5 +148,42 @@ if (persistences.length > 0) {
   const min = Math.min(...persistences);
   console.log(`\nPersistence: min=${min.toFixed(2)}, avg=${avg.toFixed(2)}, max=${max.toFixed(2)}`);
 }
+
+// ============================================
+// EXPERIMENT 4: Query Learned Patterns
+// ============================================
+console.log('\n═══════════════════════════════════════════');
+console.log('EXPERIMENT 4: Query what was learned');
+console.log('═══════════════════════════════════════════\n');
+
+// Get vocabulary stats
+const vocabStats = getVocabularyStats(engine);
+console.log(`Vocabulary: ${vocabStats.uniqueTokens} unique tokens, ${vocabStats.totalOccurrences} total occurrences`);
+console.log('Top tokens:', vocabStats.topTokens.map(t => `${t.token}(${t.count})`).join(', '));
+
+// Get learned patterns
+console.log('\nLearned patterns (high-persistence hadrons → tokens):');
+const patterns = getLearnedPatterns(engine, 5);
+for (const p of patterns) {
+  console.log(`  ${p.quarkSignature} (persistence=${p.persistence.toFixed(2)}): [${p.tokens.join(', ')}]`);
+}
+
+// ============================================
+// EXPERIMENT 5: Generate response from learned
+// ============================================
+console.log('\n═══════════════════════════════════════════');
+console.log('EXPERIMENT 5: Generate from learned patterns');
+console.log('═══════════════════════════════════════════\n');
+
+// Test response generation
+const testQueries = ['hello', 'world', 'alpha', 'something new'];
+for (const query of testQueries) {
+  const response = generateFromLearned(engine, query, 5);
+  console.log(`Query: "${query}" → Response: "${response}"`);
+}
+
+// Empty query - should return most learned tokens
+const emptyResponse = generateFromLearned(engine, '', 5);
+console.log(`\nNo input → Most learned: "${emptyResponse}"`);
 
 console.log('\n═══ LEARNING TEST COMPLETE ═══');

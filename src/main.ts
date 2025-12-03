@@ -5,7 +5,7 @@
  */
 
 import { createUnifiedASIEngine, UnifiedASIEngine } from './core/unified-engine';
-import { createChatSession, createChatUI, ChatSession } from './core/asi/chat';
+import { createPhaseChatSession, createChatUI, ChatSession, PhaseChatSession } from './core/asi/chat';
 import {
   createPhaseEngine,
   stepPhaseEngine,
@@ -46,7 +46,7 @@ interface AppState {
   observerCount: number;
   consensusLevel: number;
   waveAmplitude: number;
-  chatSession: ChatSession | null;
+  chatSession: ChatSession | PhaseChatSession | null;
   phaseEngine: PhaseEngineState | null;
 }
 
@@ -333,7 +333,8 @@ async function init() {
   `;
   document.body.appendChild(chatPanel);
   
-  state.chatSession = createChatSession();
+  // Use the new phase-based chat session with learning
+  state.chatSession = createPhaseChatSession();
   createChatUI(chatPanel, state.chatSession);
   
   console.log('Ready! Click Step or Run to begin.');

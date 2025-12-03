@@ -50,6 +50,61 @@ import {
 } from './wave-collapse';
 
 // ============================================
+// TOKEN REGISTRY - Maps tokens to phases for retrieval
+// ============================================
+
+export interface TokenRegistry {
+  // Token → phase position (for lookup)
+  tokenToPhase: Map<string, number>;
+  
+  // Phase bucket → tokens (for retrieval)
+  // Buckets are phase ranges [0, π/8), [π/8, π/4), etc.
+  phaseBuckets: Map<number, Set<string>>;
+  
+  // Token frequency for response weighting
+  tokenCount: Map<string, number>;
+}
+
+function createTokenRegistry(): TokenRegistry {
+  return {
+    tokenToPhase: new Map(),
+    phaseBuckets: new Map(),
+    tokenCount: new Map(),
+  };
+}
+
+function registerToken(registry: TokenRegistry, token: string, phase: number): void {
+  // Store token → phase
+  registry.tokenToPhase.set(token, phase);
+  
+  // Bucket index (16 buckets around the circle)
+  const bucketIndex = Math.floor((phase / (2 * Math.PI)) * 16) % 16;
+  
+  if (!registry.phaseBuckets.has(bucketIndex)) {
+    registry.phaseBuckets.set(bucketIndex, new Set());
+  }
+  registry.phaseBuckets.get(bucketIndex)!.add(token);
+  
+  // Increment count
+  registry.tokenCount.set(token, (registry.tokenCount.get(token) || 0) + 1);
+}
+
+function getTokensNearPhase(registry: TokenRegistry, phase: number, radius: number = 0.5): string[] {
+  const results: string[] = [];
+  
+  for (const [token, tokenPhase] of registry.tokenToPhase) {
+    const dist = Math.abs(tokenPhase - phase);
+    const normalizedDist = Math.min(dist, 2 * Math.PI - dist);
+    
+    if (normalizedDist < radius) {
+      results.push(token);
+    }
+  }
+  
+  return results;
+}
+
+// ============================================
 // PHASE ENGINE STATE
 // ============================================
 
@@ -72,6 +127,9 @@ export interface PhaseEngineState {
   
   // Configuration
   policy: AgentPolicy;
+  
+  // Token registry for retrieval
+  tokenRegistry: TokenRegistry;
 }
 
 // ============================================
@@ -120,6 +178,7 @@ export function createPhaseEngine(policy: AgentPolicy = coherencePolicy): PhaseE
     nestedRealities: [],
     emotion: { R: 0, G: 0, B: 0, I: 0 },  // No emotion yet - emerges
     policy,
+    tokenRegistry: createTokenRegistry(),
   };
 }
 
@@ -177,9 +236,13 @@ export function processTextInput(
   for (const token of tokens) {
     // Hash token to phase point
     const hash = hashToken(token);
+    const phaseValue = hash.t % (2 * Math.PI);
+    
+    // REGISTER token → phase mapping for later retrieval
+    registerToken(state.tokenRegistry, token, phaseValue);
     
     // DUALITY: Use createPhasePoint - space is derived from time
-    const phase = createPhasePoint(hash.t % (2 * Math.PI));
+    const phase = createPhasePoint(phaseValue);
     
     // Determine quarks from phase (space quark is dual of time quark)
     const timeQuark = classifyTimeQuark(phase.φ_t);
@@ -398,6 +461,165 @@ export function getPhaseEngineStats(state: PhaseEngineState): PhaseEngineStats {
       time: upCount >= downCount ? 'up' : 'down',
       space: charmCount >= strangeCount ? 'charm' : 'strange',
     },
+  };
+}
+
+// ============================================
+// QUERY LEARNED PATTERNS
+// ============================================
+
+export interface LearnedPattern {
+  tokens: string[];
+  persistence: number;
+  phase: number;
+  quarkSignature: string;
+}
+
+/**
+ * Get the most strongly learned patterns (high-persistence hadrons mapped to tokens)
+ */
+export function getLearnedPatterns(state: PhaseEngineState, limit: number = 10): LearnedPattern[] {
+  const patterns: LearnedPattern[] = [];
+  
+  // Sort hadrons by persistence
+  const sortedHadrons = [...state.cycle.hadrons]
+    .sort((a, b) => b.persistence - a.persistence)
+    .slice(0, limit);
+  
+  for (const hadron of sortedHadrons) {
+    // Find tokens near this hadron's R phase
+    const phase = hadron.R.phase.φ_t;
+    const nearbyTokens = getTokensNearPhase(state.tokenRegistry, phase, 0.5);
+    
+    // Sort by frequency
+    const sortedTokens = nearbyTokens
+      .sort((a, b) => 
+        (state.tokenRegistry.tokenCount.get(b) || 0) - 
+        (state.tokenRegistry.tokenCount.get(a) || 0)
+      )
+      .slice(0, 5);
+    
+    if (sortedTokens.length > 0) {
+      patterns.push({
+        tokens: sortedTokens,
+        persistence: hadron.persistence,
+        phase,
+        quarkSignature: hadronSignature(hadron),
+      });
+    }
+  }
+  
+  return patterns;
+}
+
+/**
+ * Generate a response showing the learning process
+ * Shows: token phases, hadron formation, inversion results, resonance
+ */
+export function generateFromLearned(
+  state: PhaseEngineState,
+  inputText: string,
+  _maxTokens: number = 10
+): string {
+  const inputTokens = inputText.toLowerCase().split(/\s+/).filter(t => t.length > 0);
+  const stats = getPhaseEngineStats(state);
+  
+  if (inputTokens.length === 0) {
+    if (state.cycle.hadrons.length === 0) {
+      return 'Empty phase space. Send tokens to begin learning.';
+    }
+    // Show what's been learned
+    const patterns = getLearnedPatterns(state, 3);
+    if (patterns.length === 0) {
+      return `${state.cycle.hadrons.length} hadrons formed, awaiting reinforcement.`;
+    }
+    const learned = patterns.map(p => 
+      `${p.tokens[0] || '?'}(${p.persistence.toFixed(1)})`
+    ).join(' ');
+    return `Learned: ${learned}`;
+  }
+  
+  // Build response showing the processing
+  const parts: string[] = [];
+  
+  // Show token → phase mapping
+  const tokenPhases: string[] = [];
+  for (const token of inputTokens.slice(0, 3)) {
+    const hash = hashToken(token);
+    const phase = hash.t % (2 * Math.PI);
+    const quark = phase < Math.PI ? 'u' : 'd';  // Up or Down based on phase
+    tokenPhases.push(`${token}→${quark}`);
+  }
+  parts.push(tokenPhases.join(' '));
+  
+  // Find resonant hadrons with this input
+  const inputPhases = inputTokens.map(t => hashToken(t).t % (2 * Math.PI));
+  let totalResonance = 0;
+  let topHadron: HadronTriangle | null = null;
+  let topScore = 0;
+  
+  for (const hadron of state.cycle.hadrons) {
+    const hadronPhase = hadron.R.phase.φ_t;
+    let score = 0;
+    
+    for (const inputPhase of inputPhases) {
+      const dist = Math.abs(hadronPhase - inputPhase);
+      const normalizedDist = Math.min(dist, 2 * Math.PI - dist);
+      score += (1 / (1 + normalizedDist)) * hadron.persistence;
+    }
+    
+    totalResonance += score;
+    if (score > topScore) {
+      topScore = score;
+      topHadron = hadron;
+    }
+  }
+  
+  // Show resonance info
+  if (topHadron) {
+    const sig = hadronSignature(topHadron);
+    parts.push(`⟨${sig}⟩`);
+    
+    // Find what tokens are associated with this hadron
+    const nearbyTokens = getTokensNearPhase(state.tokenRegistry, topHadron.R.phase.φ_t, 0.5);
+    const associated = nearbyTokens.filter(t => !inputTokens.includes(t)).slice(0, 2);
+    if (associated.length > 0) {
+      parts.push(`~${associated.join(',')}`);
+    }
+  }
+  
+  // Show emotional state as indicator
+  const emotionIndicator = stats.emotion.R > 0.5 ? '♥' : 
+                          stats.emotion.B > 0.5 ? '◆' : '○';
+  parts.push(emotionIndicator);
+  
+  // Show persistence trend
+  if (topHadron && topHadron.persistence > 2) {
+    parts.push(`↑${topHadron.persistence.toFixed(1)}`);
+  }
+  
+  return parts.join(' ');
+}
+
+/**
+ * Get vocabulary statistics
+ */
+export function getVocabularyStats(state: PhaseEngineState): {
+  uniqueTokens: number;
+  totalOccurrences: number;
+  topTokens: { token: string; count: number }[];
+} {
+  const registry = state.tokenRegistry;
+  
+  const topTokens = Array.from(registry.tokenCount.entries())
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 10)
+    .map(([token, count]) => ({ token, count }));
+  
+  return {
+    uniqueTokens: registry.tokenToPhase.size,
+    totalOccurrences: Array.from(registry.tokenCount.values()).reduce((a, b) => a + b, 0),
+    topTokens,
   };
 }
 
