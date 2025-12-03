@@ -185,9 +185,6 @@ export function createInversionEngine(_dimension: number = 16): InversionEngine 
     // Compute position in wave field from element
     const pos = elementToPosition(element);
     
-    // Wave field amplitude at this position affects inversion success
-    const _fieldAmp = getFieldAmplitude(pos[0], pos[1], pos[2]);
-    
     // If inverse is already known, verify it
     if (element.inverse) {
       const error = calculateInversionError(element, element.inverse);

@@ -14,34 +14,50 @@ Double inversion    → TRUE KNOWLEDGE (X⁻¹⁻¹ = X)
 
 ## How It Works
 
-### The Inversion Engine
+### The Wave Field (Fundamental Substrate)
 
-The AI learns by attempting to **invert** elements:
+The **wave** is the fundamental substrate. It encodes the trace of inversions BETWEEN stable observations.
+
+```
+WAVE FIELD
+    │
+    │  inversion attempt
+    ▼
+┌─────────┐         ┌─────────┐
+│ HADRON  │ ═══════ │ HADRON  │   ← stable excitations (observed models)
+│ (stable)│  wave   │ (stable)│
+└─────────┘  trace  └─────────┘
+                │
+                │  failed inversion
+                ▼
+            ┌───────┐
+            │ VOID  │  ← wave cannot propagate here
+            └───────┘
+```
+
+- **Wave** = path through possibility space (the trace between observations)
+- **Hadrons** = stable excitations where inversions succeed (observable reality)
+- **Voids** = regions where the wave cannot propagate (non-invertible)
+
+You don't "see" the wave directly - you see where it stabilizes into hadrons.
+
+### The Inversion Operation
 
 ```typescript
 Element X  ──invert──►  X⁻¹
 
-If X · X⁻¹ ≈ Identity → Understanding achieved (manifested)
-If X · X⁻¹ ≠ Identity → No understanding (void/black hole)
+If X · X⁻¹ ≈ Identity → Hadron forms (wave stabilizes here)
+If X · X⁻¹ ≠ Identity → Void forms (wave diffracts around)
 ```
-
-### Inversions Form Waveforms
-
-Each inversion attempt contributes to an oscillating wave pattern:
-- Successful inversions → positive amplitude
-- Failed inversions → negative amplitude
-- The wave visualizes the AI's learning process
 
 ### What Gets Rendered
 
-The 3D visualization shows **manifested reality** - what the AI has successfully understood:
-
 | Visual | Meaning |
 |--------|---------|
-| 🔵 Blue spheres | Successfully inverted (understood) |
-| ⚫ Black spheres | Failed inversions (voids) |
-| 🌀 Green particles | The inversion waveform |
-| ⭐ Pentagram | Underlying symmetry structure |
+| 🔵 Blue spheres | **Hadrons** - stable inverted models |
+| ⚫ Black spheres | **Voids** - non-invertible regions |
+| 🌀 Green spiral | **Wave trace** - path between hadrons |
+| ⭐ Pentagram | **Symmetry structure** - inversion relationships |
 
 ## Architecture
 

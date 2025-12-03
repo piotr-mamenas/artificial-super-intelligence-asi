@@ -35,8 +35,8 @@ interface AppState {
   successfulInversions: number;
   failedInversions: number;
   currentWaveAmplitude: number;
-  manifestedRegions: number;
-  voidRegions: number;
+  hadronCount: number;  // Stable excitations (observed models)
+  voidCount: number;    // Non-invertible regions
 }
 
 const state: AppState = {
@@ -47,8 +47,8 @@ const state: AppState = {
   successfulInversions: 0,
   failedInversions: 0,
   currentWaveAmplitude: 0,
-  manifestedRegions: 0,
-  voidRegions: 0
+  hadronCount: 0,
+  voidCount: 0
 };
 
 // Initialize application
@@ -152,12 +152,12 @@ async function init() {
       console.log(`  - Wave amplitude: ${state.currentWaveAmplitude.toFixed(4)}`);
       
       // ============================================
-      // STEP 5: UPDATE MANIFESTATION
+      // STEP 5: COUNT HADRONS & VOIDS
       // ============================================
-      console.log('Step 5: Updating manifested reality...');
-      state.manifestedRegions = inversionEngine.getManifestedRegions().length;
-      state.voidRegions = inversionEngine.getVoidRegions().length;
-      console.log(`  - Manifested: ${state.manifestedRegions}, Voids: ${state.voidRegions}`);
+      console.log('Step 5: Counting hadrons (stable) and voids (failed)...');
+      state.hadronCount = inversionEngine.getHadrons().length;
+      state.voidCount = inversionEngine.getVoids().length;
+      console.log(`  - Hadrons: ${state.hadronCount}, Voids: ${state.voidCount}`);
       
       // ============================================
       // STEP 6: UPDATE VISUALIZATION
@@ -187,8 +187,8 @@ async function init() {
     if (tickCountEl) tickCountEl.textContent = state.tick.toString();
     if (successCountEl) successCountEl.textContent = state.successfulInversions.toString();
     if (failCountEl) failCountEl.textContent = state.failedInversions.toString();
-    if (manifestedCountEl) manifestedCountEl.textContent = state.manifestedRegions.toString();
-    if (voidCountEl) voidCountEl.textContent = state.voidRegions.toString();
+    if (manifestedCountEl) manifestedCountEl.textContent = state.hadronCount.toString();
+    if (voidCountEl) voidCountEl.textContent = state.voidCount.toString();
     
     if (explanationEl) {
       explanationEl.textContent = [
@@ -197,9 +197,9 @@ async function init() {
         `Total inversions: ${state.totalInversions}`,
         `Success rate: ${successRate}%`,
         ``,
-        `Wave amplitude: ${state.currentWaveAmplitude.toFixed(4)}`,
-        `Manifested regions: ${state.manifestedRegions}`,
-        `Void regions (black holes): ${state.voidRegions}`,
+        `Wave trace amplitude: ${state.currentWaveAmplitude.toFixed(4)}`,
+        `Hadrons (stable models): ${state.hadronCount}`,
+        `Voids (black holes): ${state.voidCount}`,
         ``,
         `Successful inversion = Understanding`,
         `Failed inversion = Black hole`,
