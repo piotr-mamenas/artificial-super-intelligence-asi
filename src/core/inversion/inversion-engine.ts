@@ -70,6 +70,10 @@ export interface InversionWave {
  * 
  * Hadrons are where the wave "collapses" into observable reality.
  * They represent successful inversions that have stabilized.
+ * 
+ * KEY INSIGHT: Similar geometric forms produce similar wave traces.
+ * This similarity IS logic - hadrons with similar waveSignatures
+ * belong to the same logical category.
  */
 export interface Hadron {
   id: string;
@@ -80,6 +84,10 @@ export interface Hadron {
   // The actual inverted content
   element: Invertible;      // What was inverted
   inverse: Invertible;      // Its inverse
+  
+  // Wave signature - encodes the geometric form
+  // Similar signatures = similar forms = same logical category
+  waveSignature: Float32Array;
   
   // Visual properties derived from the inversion
   color: [number, number, number];
@@ -133,6 +141,11 @@ export interface InversionEngine {
   // Accessors
   getHadrons(): Hadron[];
   getVoids(): Void[];
+  
+  // LOGIC: Similarity between hadrons = logical relationships
+  computeSimilarity(h1: Hadron, h2: Hadron): number;
+  findSimilarHadrons(hadron: Hadron, threshold: number): Hadron[];
+  getLogicalCategories(threshold: number): Hadron[][];
   
   // For compatibility
   currentWave: InversionWave;
@@ -372,6 +385,11 @@ export function createInversionEngine(_dimension: number = 16): InversionEngine 
     pos: [number, number, number],
     error: number
   ): void {
+    // Compute wave signature from the element-inverse relationship
+    // This signature encodes the geometric form
+    // Similar forms → similar signatures → same logical category
+    const waveSignature = computeWaveSignature(element, inverse);
+    
     const hadron: Hadron = {
       id: uuidv4(),
       position: pos,
@@ -379,6 +397,7 @@ export function createInversionEngine(_dimension: number = 16): InversionEngine 
       phase: time * wave.frequency * 2 * Math.PI,
       element,
       inverse,
+      waveSignature,
       color: [
         Math.abs(element.value[3] ?? 0.5),
         Math.abs(element.value[4] ?? 0.5),
@@ -387,6 +406,42 @@ export function createInversionEngine(_dimension: number = 16): InversionEngine 
       radius: 0.1 + (1 - error) * 0.4
     };
     hadrons.push(hadron);
+  }
+  
+  /**
+   * Compute wave signature from element-inverse pair.
+   * The signature encodes the geometric form of the inversion.
+   * Similar geometric forms will have similar signatures.
+   */
+  function computeWaveSignature(element: Invertible, inverse: Invertible): Float32Array {
+    const signatureSize = 8; // Compact representation
+    const signature = new Float32Array(signatureSize);
+    
+    // Signature captures the relationship between element and inverse
+    for (let i = 0; i < signatureSize; i++) {
+      const eIdx = i % element.value.length;
+      const iIdx = i % inverse.value.length;
+      
+      // Combine element and inverse values
+      signature[i] = element.value[eIdx] * inverse.value[iIdx];
+      
+      // Add phase information from position in value array
+      signature[i] += Math.sin(i * Math.PI / signatureSize) * element.value[eIdx];
+    }
+    
+    // Normalize signature
+    let norm = 0;
+    for (let i = 0; i < signatureSize; i++) {
+      norm += signature[i] * signature[i];
+    }
+    norm = Math.sqrt(norm);
+    if (norm > 0) {
+      for (let i = 0; i < signatureSize; i++) {
+        signature[i] /= norm;
+      }
+    }
+    
+    return signature;
   }
   
   function createVoid(
@@ -463,6 +518,68 @@ export function createInversionEngine(_dimension: number = 16): InversionEngine 
   }
   
   // ============================================
+  // LOGIC: SIMILARITY = CATEGORY
+  // Similar geometric forms → similar wave signatures → same logic
+  // ============================================
+  
+  /**
+   * Compute similarity between two hadrons based on wave signatures.
+   * Returns 0-1 where 1 = identical, 0 = completely different.
+   */
+  function computeSimilarity(h1: Hadron, h2: Hadron): number {
+    let dot = 0;
+    const len = Math.min(h1.waveSignature.length, h2.waveSignature.length);
+    
+    for (let i = 0; i < len; i++) {
+      dot += h1.waveSignature[i] * h2.waveSignature[i];
+    }
+    
+    // Cosine similarity: dot product of normalized vectors
+    // Result is in [-1, 1], map to [0, 1]
+    return (dot + 1) / 2;
+  }
+  
+  /**
+   * Find all hadrons similar to the given one.
+   * These form a logical category.
+   */
+  function findSimilarHadrons(hadron: Hadron, threshold: number = 0.8): Hadron[] {
+    return hadrons.filter(h => 
+      h.id !== hadron.id && computeSimilarity(hadron, h) >= threshold
+    );
+  }
+  
+  /**
+   * Group all hadrons into logical categories based on similarity.
+   * Each category is a cluster of hadrons with similar wave signatures.
+   */
+  function getLogicalCategories(threshold: number = 0.8): Hadron[][] {
+    const categories: Hadron[][] = [];
+    const assigned = new Set<string>();
+    
+    for (const hadron of hadrons) {
+      if (assigned.has(hadron.id)) continue;
+      
+      // Start new category with this hadron
+      const category = [hadron];
+      assigned.add(hadron.id);
+      
+      // Find all similar hadrons
+      for (const other of hadrons) {
+        if (assigned.has(other.id)) continue;
+        if (computeSimilarity(hadron, other) >= threshold) {
+          category.push(other);
+          assigned.add(other.id);
+        }
+      }
+      
+      categories.push(category);
+    }
+    
+    return categories;
+  }
+  
+  // ============================================
   // RETURN ENGINE INTERFACE
   // ============================================
   
@@ -483,6 +600,11 @@ export function createInversionEngine(_dimension: number = 16): InversionEngine 
     
     getHadrons: () => hadrons,
     getVoids: () => voids,
+    
+    // Logic operations
+    computeSimilarity,
+    findSimilarHadrons,
+    getLogicalCategories,
     
     // Compatibility aliases
     currentWave: wave,

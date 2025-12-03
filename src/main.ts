@@ -152,12 +152,16 @@ async function init() {
       console.log(`  - Wave amplitude: ${state.currentWaveAmplitude.toFixed(4)}`);
       
       // ============================================
-      // STEP 5: COUNT HADRONS & VOIDS
+      // STEP 5: COUNT HADRONS & VOIDS + LOGICAL CATEGORIES
       // ============================================
-      console.log('Step 5: Counting hadrons (stable) and voids (failed)...');
+      console.log('Step 5: Counting hadrons and analyzing logical structure...');
       state.hadronCount = inversionEngine.getHadrons().length;
       state.voidCount = inversionEngine.getVoids().length;
+      
+      // Logic emerges from similarity of wave signatures
+      const categories = inversionEngine.getLogicalCategories(0.7);
       console.log(`  - Hadrons: ${state.hadronCount}, Voids: ${state.voidCount}`);
+      console.log(`  - Logical categories: ${categories.length} (similar forms → same logic)`);
       
       // ============================================
       // STEP 6: UPDATE VISUALIZATION
@@ -191,6 +195,7 @@ async function init() {
     if (voidCountEl) voidCountEl.textContent = state.voidCount.toString();
     
     if (explanationEl) {
+      const categories = inversionEngine.getLogicalCategories(0.7);
       explanationEl.textContent = [
         `INVERSION-BASED AI STATUS`,
         `─────────────────────────`,
@@ -200,10 +205,10 @@ async function init() {
         `Wave trace amplitude: ${state.currentWaveAmplitude.toFixed(4)}`,
         `Hadrons (stable models): ${state.hadronCount}`,
         `Voids (black holes): ${state.voidCount}`,
+        `Logical categories: ${categories.length}`,
         ``,
-        `Successful inversion = Understanding`,
-        `Failed inversion = Black hole`,
-        `Double inversion = True knowledge`
+        `Similar forms → similar waves → LOGIC`,
+        `Categories cluster hadrons by wave signature`
       ].join('\n');
     }
     
