@@ -251,72 +251,72 @@
         <div id="hud-overlay">
           <!-- Identity Card -->
           <div class="hud-card">
-            <div class="hud-title">Symmetry Inversion ASI</div>
+            <div class="hud-title">Phase-Space ASI</div>
             <div class="stat-row">
-              <span class="stat-label">Tick</span>
+              <span class="stat-label">Cycle</span>
               <span id="logical-time" class="stat-value">0</span>
             </div>
             <div class="stat-row">
-              <span class="stat-label">J² = Identity</span>
-              <span class="stat-value" style="font-size: 11px; color: #88aa88;">Active</span>
+              <span class="stat-label">T∘S Inversion</span>
+              <span class="stat-value" style="font-size: 11px; color: #88aa88;">J² = Id</span>
             </div>
           </div>
           
-          <!-- Inversion Stats -->
+          <!-- Hadron Triangles -->
           <div class="hud-card">
-            <div class="hud-title">Inversion State</div>
+            <div class="hud-title">Hadron Triangles</div>
             <div class="stat-row">
-              <span class="stat-label">Hadrons</span>
-              <span id="hadron-count" class="stat-value positive">0</span>
+              <span class="stat-label">Total (Stable)</span>
+              <span id="hadron-count" class="stat-value positive">0 (0)</span>
             </div>
             <div class="stat-row">
-              <span class="stat-label">Voids</span>
-              <span id="blackhole-count" class="stat-value negative">0</span>
+              <span class="stat-label">Voids / Black Holes</span>
+              <span id="blackhole-count" class="stat-value negative">0 / 0</span>
             </div>
             <div class="stat-row">
               <span class="stat-label">Wave Amplitude</span>
               <span id="wave-amplitude" class="stat-value">0.000</span>
             </div>
             
-            <!-- RGB Axis bars -->
+            <!-- Emotion RGBI bars -->
             <div class="axis-indicator">
               <div style="flex:1">
                 <div class="axis-bar r"><div class="axis-bar-fill" id="r-bar" style="width: 50%"></div></div>
-                <div class="axis-label">Love/Hate</div>
+                <div class="axis-label">R (Love)</div>
               </div>
               <div style="flex:1">
                 <div class="axis-bar g"><div class="axis-bar-fill" id="g-bar" style="width: 50%"></div></div>
-                <div class="axis-label">Hope/Fear</div>
+                <div class="axis-label">G (Success)</div>
               </div>
               <div style="flex:1">
                 <div class="axis-bar b"><div class="axis-bar-fill" id="b-bar" style="width: 50%"></div></div>
-                <div class="axis-label">Truth/Empty</div>
+                <div class="axis-label">B (Truth)</div>
               </div>
             </div>
           </div>
           
-          <!-- Observer Consensus -->
+          <!-- Quark State -->
           <div class="hud-card">
-            <div class="hud-title">Observer Consensus</div>
+            <div class="hud-title">Quark Dominance</div>
             <div class="stat-row">
               <span class="stat-label">Observers</span>
               <span id="observer-count" class="stat-value">4</span>
             </div>
             <div class="stat-row">
-              <span class="stat-label">Agreement</span>
+              <span class="stat-label">Consensus</span>
               <span id="consensus-level" class="stat-value neutral">0%</span>
             </div>
             <div class="stat-row">
-              <span class="stat-label">Training Acc</span>
-              <span id="training-accuracy" class="stat-value">50%</span>
+              <span class="stat-label">Success Rate</span>
+              <span id="training-accuracy" class="stat-value">0%</span>
             </div>
           </div>
           
           <!-- Controls -->
           <div class="hud-card">
-            <div class="hud-title">Simulation</div>
+            <div class="hud-title">Wave Cycle</div>
             <div class="control-buttons">
-              <button id="tick-btn" class="ctrl-btn">Tick</button>
+              <button id="tick-btn" class="ctrl-btn">Step</button>
               <button id="run-btn" class="ctrl-btn primary">Run</button>
               <button id="pause-btn" class="ctrl-btn">Pause</button>
             </div>
@@ -324,9 +324,9 @@
           
           <!-- Status -->
           <div class="hud-card">
-            <div class="hud-title">System Status</div>
+            <div class="hud-title">Phase State</div>
             <div id="explanation" style="font-size: 10px; color: #889; line-height: 1.4;">
-              Ready. Click Tick or Run to begin inversion cycles.
+              Ready. Click Step or Run to begin phase cycles.
             </div>
           </div>
         </div>
@@ -336,17 +336,22 @@
           <div class="info-chip">
             <span class="icon">&#x26A1;</span>
             <span class="label">Engine:</span>
-            <span class="value">Unified ASI</span>
+            <span class="value">Phase-Space</span>
           </div>
           <div class="info-chip">
             <span class="icon">&#x1F9E0;</span>
-            <span class="label">Mode:</span>
-            <span class="value">No LLM</span>
+            <span class="label">Quarks:</span>
+            <span class="value">u/d c/s t/b</span>
           </div>
           <div class="info-chip">
             <span class="icon">&#x1F300;</span>
-            <span class="label">Axes:</span>
-            <span class="value">RGB Semantic</span>
+            <span class="label">Torus:</span>
+            <span class="value">S¹×S¹</span>
+          </div>
+          <div class="info-chip">
+            <span class="icon">⭐</span>
+            <span class="label">KCBS:</span>
+            <span class="value">Pentagram</span>
           </div>
         </div>
         

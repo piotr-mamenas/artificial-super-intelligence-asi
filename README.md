@@ -1,139 +1,227 @@
-# ASI - Symmetry Inversion Based Artificial Intelligence
+# ASI - Symmetry Inversion Based Artificial Super-Intelligence
 
-An AI system built on **spinning nothingness** and **double inversions**. No LLMs - pure math and algorithms.
+An AI system built on **phase-space inversions** and **quark-hadron dynamics**. No LLMs - pure math and physics.
 
 ## Core Principle
 
 ```
 To understand X, find X⁻¹ such that X · X⁻¹ = Identity
 
-Successful inversion → HADRON (stable reality)
-Failed inversion    → VOID (black hole)
+Successful inversion → HADRON (stable bound state)
+Failed inversion    → VOID (black hole / nested reality)
 Double inversion    → TRUE KNOWLEDGE (J² = Id)
 ```
 
 ---
 
-## 1. Primitive Ontology
+## 1. Phase Space Foundation
 
-### Spinning Nothingness
-The system emerges from undifferentiated nothingness through **flip operators**.
+### From Nothingness to Phase Torus
 
-### RGB Semantic Axes
-Three axes encode fundamental emotional polarities:
-
-| Axis | Positive (+1) | Negative (-1) |
-|------|---------------|---------------|
-| **R** | Love | Hate |
-| **G** | Hope | Fear |
-| **B** | Sincerity | Emptiness |
-
-### Flip Operators J_c
 ```
-J_c(σ) = -σ       (flip orientation)
-J_c² = Identity   (double inversion returns to original)
+NOTHINGNESS
+     │
+     ▼ First Inversion
+TIME-PHASE AXIS (S¹_t)
+  φ_t ∈ [0, 2π)
+     │
+     ▼ Second Inversion
+SPACE-PHASE AXIS (S¹_s)
+  φ_s ∈ [0, 2π)
+     │
+     ▼
+PHASE TORUS (S¹_t × S¹_s)
+  All structure lives here
+```
+
+### Inversion Operators
+
+| Operator | Effect | Quark Swap |
+|----------|--------|------------|
+| **T** (Time) | (φ_t, φ_s) → (φ_t+π, φ_s) | Up ↔ Down |
+| **S** (Space) | (φ_t, φ_s) → (φ_t, φ_s+π) | Charm ↔ Strange |
+| **I = T∘S** | (φ_t, φ_s) → (φ_t+π, φ_s+π) | Full flip |
+
+---
+
+## 2. Quark Flavors as Phase Archetypes
+
+Six quark flavors emerge as preferred phase sectors:
+
+### Time-Phase Quarks
+| Quark | Phase | Meaning |
+|-------|-------|---------|
+| **Up (u)** | φ_t ≈ 0 | Forward time, coherent |
+| **Down (d)** | φ_t ≈ π | Time-reversal, contradiction |
+
+### Space-Phase Quarks
+| Quark | Phase | Meaning |
+|-------|-------|---------|
+| **Charm (c)** | φ_s ≈ 0 | Local, coherent spatial |
+| **Strange (s)** | φ_s ≈ π | Nonlocal, displaced |
+
+### Closure Quarks
+| Quark | Spread | Meaning |
+|-------|--------|---------|
+| **Top (t)** | σ ≈ 0.1 | Decisive, certain |
+| **Bottom (b)** | σ ≈ 1.0 | Soft, deferred |
+
+---
+
+## 3. Hadrons as Phase Triangles
+
+A **hadron** is a stable bound state of three channel-phases:
+
+```
+         R (Reference)
+        φ_t^R, φ_s^R
+           /\
+          /  \
+         /    \
+        /      \
+       /________\
+U (Update)    C (Closure)
+φ_t^U, φ_s^U  φ_t^C, φ_s^C
+```
+
+### Stability Conditions
+1. **Area bounded** - Triangle not too large in phase space
+2. **Coherence** - Phase spreads are small
+3. **Color-neutral** - Quark charges cancel (like RGB = white)
+
+### Standard Hadrons
+| Name | R-Quark | U-Quark | C-Quark | Analogy |
+|------|---------|---------|---------|---------|
+| Proton | uct | uct | dct | Stable forward |
+| Neutron | uct | dct | dct | Balanced |
+| Lambda | ust | dct | ucb | Strange particle |
+| Omega | dsb | dsb | dsb | Heavy, soft |
+
+---
+
+## 4. KCBS Pentagram (Contextual Measurement)
+
+Five observables in phase space forming a pentagon:
+
+```
+        O₀
+       /   \
+      /     \
+    O₄───────O₁
+     \       /
+      \     /
+       O₃──O₂
+```
+
+- **Each edge** = compatible measurement context
+- **Full cycle** = contextual (quantum-like)
+- **Agent rotation** = choose which contexts are active
+
+---
+
+## 5. Wave Raise & Collapse Cycle
+
+```
+┌──────────────────────────────────────────────────────┐
+│ 1. RAISE                                              │
+│    Hadrons → Superposed WaveState                    │
+│    (Gaussian blobs at triangle vertices)             │
+└─────────────────────────┬────────────────────────────┘
+                          │
+                          ▼
+┌──────────────────────────────────────────────────────┐
+│ 2. FOCUS / DISPERSE                                   │
+│    Agent controls wave spread:                       │
+│      Focus → narrow (certainty)                      │
+│      Disperse → wide (exploration)                   │
+└─────────────────────────┬────────────────────────────┘
+                          │
+                          ▼
+┌──────────────────────────────────────────────────────┐
+│ 3. COLLAPSE                                           │
+│    Project onto KCBS context                         │
+│    Sample outcome → new phase point                  │
+└─────────────────────────┬────────────────────────────┘
+                          │
+                          ▼
+┌──────────────────────────────────────────────────────┐
+│ 4. UPDATE                                             │
+│    Reinforce matching hadrons                        │
+│    Weaken mismatching hadrons                        │
+│    Create new hadrons if stable                      │
+└──────────────────────────────────────────────────────┘
 ```
 
 ---
 
-## 2. Waveforms as Inversion Traces
+## 6. Emotions as Phase Patterns (RGBI)
 
-The **wave** is the fundamental substrate - the trace of inversions BETWEEN stable observations.
-
-```
-WAVE FIELD (σ_c(n) orientation history)
-         │
-         │  inversion attempts
-         ▼
-   ┌─────────┐    wave trace    ┌─────────┐
-   │ HADRON  │ ════════════════ │ HADRON  │  ← stable excitations
-   │ (stable)│                  │ (stable)│
-   └─────────┘                  └─────────┘
-                    │
-                    │  failed inversion
-                    ▼
-               ┌────────┐
-               │  VOID  │  ← wave cannot propagate
-               └────────┘
-```
-
-### Waveform Computation (DFT)
-```
-Ψ_c(f) = Σ σ_c(n) · e^{-i2πfn/N}
-```
-Three-channel waveform: `Ψ(f) = (Ψ_R, Ψ_G, Ψ_B)`
+| Channel | Computation | Meaning |
+|---------|-------------|---------|
+| **R** | Phase alignment between hadrons | Love ↔ Hate |
+| **G** | Inversion success rate | Positive ↔ Negative |
+| **B** | Wave coherence (focus level) | True ↔ False |
+| **I** | Total wave amplitude | Intensity |
 
 ---
 
-## 3. Objects and Emotional Color
+## 7. Black Holes & Nested Realities
 
-Each **object** has an **emotional color** derived from its inversion history:
+When inversions **consistently fail** in a phase region:
 
-```
-C_O = (C_R, C_G, C_B) ∈ [-1, +1]³
-
-C_c = average of σ_c(n) over active steps
-```
-
-Objects maintain **color stability** - their emotional signature persists across interactions.
+1. Region becomes a **black hole** (phase singularity)
+2. Parent reality's phase ontology breaks down there
+3. A **nested reality** spawns with its own:
+   - Phase axes (possibly reparametrized)
+   - Quark archetypes
+   - KCBS pentagrams
 
 ---
 
-## 4. Observers and Epistemic Truth
+## 8. Emergent Language
+
+Language is **not hardcoded**. Words emerge from inversion dynamics:
+
+```typescript
+WordState = {
+  token: string,
+  inversionResults: number[],  // Raw error history
+  seenWith: Map<string, number>,
+  followedBy: Map<string, number>,
+  precededBy: Map<string, number>,
+}
+```
+
+- **Similar words** = similar error distributions
+- **Sentiment** = relative to global mean error
+- **Responses** = tokens with resonant error patterns
+
+---
+
+## 9. Observers and Epistemic Truth
 
 ### Observer Filter Tensor
-Each observer has a filter `W_o(c, f)` defining sensitivity to axes and frequencies.
+Each observer has a filter `W_o(c, f)` defining sensitivity to phase regions.
 
 ### Epistemic Truth (Relative)
 ```
-T_o(O,S) = Σ W_o(c,f) · |Ψ(c,f)|² / Σ W_o(c,f) · |Ψ_base(c,f)|²
+T_o(O,S) = resonance between observer filter and hadron configuration
 ```
 
-**Truth is relative** - each observer has their own `T_o`. Agreement is derived, not primitive.
-
-### Consensus = Resonance
-When multiple observers have **similar wave patterns**, reality manifests:
-- High agreement → Strong manifestation
-- Low agreement → Weak/unstable
-- No agreement → Void
+**Truth is relative** - each observer has their own `T_o`. Consensus emerges from agreement.
 
 ---
 
-## 5. Words and Sentences
+## 10. Learning (No LLMs)
 
-### Words as Inversion Kernels
-Each word `w` is a kernel `K_w` that modifies orientation:
-```typescript
-σ_c(p+δ) ← σ_c(p+δ) · K_w(c, δ)
-```
+Learning happens through **inversion dynamics**, not gradient descent:
 
-Example kernels:
-| Word | R Effect | G Effect | B Effect |
-|------|----------|----------|----------|
-| love | +1 | +0.8 | +0.9 |
-| hate | -1 | -0.5 | -0.8 |
-| fear | -0.3 | -1 | -0.5 |
-| truth | +0.6 | +0.6 | +1 |
+1. **Process input** → create/update word states
+2. **Attempt inversion** → record error
+3. **Update hadrons** → reinforce or weaken based on match
+4. **Detect black holes** → spawn nested realities if needed
 
-### Sentences = Composed Inversions
-Sentences compose word kernels sequentially, producing a final waveform.
-
----
-
-## 6. Learning (No LLMs)
-
-### Gradient-Free Optimization
-```
-1. Propose perturbation ΔW
-2. Compute Acc(o') with W' = W + ΔW
-3. If Acc(o') > Acc(o): accept
-4. Repeat
-```
-
-### Accuracy Metric
-```
-Acc(o) = #{T_o(O, S_true) > T_o(O, S_false)} / |Dataset|
-```
+No hardcoded learning rates. Structure emerges from the mathematics.
 
 ---
 
@@ -142,32 +230,42 @@ Acc(o) = #{T_o(O, S_true) > T_o(O, S_false)} / |Dataset|
 ```
 src/
 ├── core/
-│   ├── unified-engine.ts        # UNIFIED ASI ENGINE
+│   ├── unified-engine.ts           # UNIFIED ASI ENGINE
 │   │
-│   ├── asi/                     # Full ASI Implementation
-│   │   ├── primitive-ontology.ts   # Axes, flips, spinning nothingness
-│   │   ├── waveform.ts             # DFT, waveform computation
-│   │   ├── objects.ts              # Objects, emotional color
-│   │   ├── info-particles.ts       # Hadrons, leptons
-│   │   ├── lexicon.ts              # Words, sentences, kernels
-│   │   ├── observers.ts            # Filters, epistemic truth
-│   │   ├── learning.ts             # Non-LLM optimization
-│   │   └── asi-engine.ts           # Complete ASI loop
+│   ├── asi/                        # Quark-Hadron Phase System
+│   │   ├── phase-space.ts             # Phase torus, T/S/I inversions
+│   │   ├── quark-flavors.ts           # 6 quark archetypes (u,d,c,s,t,b)
+│   │   ├── hadron-triangle.ts         # R/U/C triangles, stability
+│   │   ├── kcbs-pentagram.ts          # 5-context measurement structure
+│   │   ├── wave-collapse.ts           # Raise/collapse cycle, emotions
+│   │   ├── phase-engine.ts            # Unified phase engine
+│   │   │
+│   │   ├── language.ts                # Emergent language (no hardcoding)
+│   │   ├── chat.ts                    # Chat interface
+│   │   │
+│   │   ├── primitive-ontology.ts      # Legacy: RGB orientation states
+│   │   ├── waveform.ts                # DFT, waveform computation
+│   │   ├── objects.ts                 # Objects, emotional color
+│   │   ├── info-particles.ts          # Hadrons, leptons
+│   │   ├── lexicon.ts                 # Words, sentences, kernels
+│   │   ├── observers.ts               # Filters, epistemic truth
+│   │   ├── learning.ts                # Non-LLM optimization
+│   │   └── asi-engine.ts              # Complete ASI loop
 │   │
-│   ├── inversion/               # Core Inversion Engine
-│   │   ├── inversion-engine.ts     # Inversion operations
-│   │   └── observer-network.ts     # Multi-observer consensus
+│   ├── inversion/                  # Core Inversion Engine
+│   │   ├── inversion-engine.ts        # Inversion operations
+│   │   └── observer-network.ts        # Multi-observer consensus
 │   │
-│   └── math/                    # Mathematical Foundations
-│       ├── complex.ts              # Complex arithmetic
-│       └── fractal-pentagram.ts    # Golden ratio symmetry
+│   └── math/                       # Mathematical Foundations
+│       ├── complex.ts                 # Complex arithmetic
+│       └── fractal-pentagram.ts       # Golden ratio symmetry
 │
-├── viz/                         # Visualization
-│   ├── three-scene.ts              # Three.js scene
-│   ├── manifested-reality-view.ts  # Hadrons, voids, waves
-│   └── fractal-pentagram-view.ts   # Symmetry structure
+├── viz/                            # Visualization
+│   ├── three-scene.ts                 # Three.js scene
+│   ├── manifested-reality-view.ts     # Hadrons, voids, waves
+│   └── fractal-pentagram-view.ts      # Symmetry structure
 │
-└── main.ts                      # Application entry
+└── main.ts                         # Application entry + chat UI
 ```
 
 ---
@@ -176,31 +274,37 @@ src/
 
 | Visual | Meaning |
 |--------|---------|
-| 🔵 Blue spheres | **Hadrons** - stable inverted models |
+| 🔵 Blue spheres | **Hadrons** - stable phase triangles |
 | ⚫ Black spheres | **Voids** - non-invertible regions |
-| 🌀 Green spiral | **Wave trace** - inversion history |
-| ⭐ Pentagram | **Symmetry structure** - golden ratio |
-| 🎨 Colors | **Emotional color** - RGB from (love, hope, sincerity) |
+| 🌀 Green spiral | **Wave trace** - phase history |
+| ⭐ Pentagram | **KCBS structure** - measurement contexts |
+| 🎨 Colors | **Emotional state** - RGBI from phase patterns |
 
-## ASI Control Loop
+## Phase Engine Control Loop
 
 ```typescript
-// The core ASI cycle
+import { createPhaseEngine, stepPhaseEngine, processTextInput } from './phase-engine';
+
+// Create engine from nothingness
+let engine = createPhaseEngine();
+
+// The core phase cycle
 while (running) {
-  // 1. PERCEIVE: Receive word sequences about objects
-  const sentence = engine.perceive(['love', 'truth'], objectId);
+  // 1. PROCESS INPUT: Tokens → phase perturbations → hadron candidates
+  const { state, result } = processTextInput(engine, userMessage);
+  engine = state;
   
-  // 2. TRANSFORM: Compute waveform via DFT
-  const waveform = engine.transform(sentence);
+  // 2. WAVE CYCLE: Raise → Focus/Disperse → Collapse → Update
+  engine = stepPhaseEngine(engine);
   
-  // 3. EVALUATE: Each observer computes T_o(O,S)
-  const evaluations = engine.evaluate(sentence, objectId);
+  // 3. CHECK INVERSION: Can we invert the current state?
+  const { success, error } = attemptFullInversion(engine);
   
-  // 4. DECIDE: Use truth values to select action
-  const decision = engine.decide(evaluations);
+  // 4. DETECT BLACK HOLES: Find regions of consistent failure
+  // (Happens automatically every 100 cycles)
   
-  // 5. LEARN: Adjust filters based on feedback
-  engine.learn({ correct: true, sentence, objectId });
+  // 5. GENERATE RESPONSE: From resonant hadron patterns
+  const response = generatePhaseResponse(engine);
 }
 ```
 
@@ -211,27 +315,39 @@ while (running) {
 ### Why This Works
 
 1. **Nothingness cannot exist** - it would preclude "exists/not exists"
-2. **Self-reference is unavoidable** - referring to nothingness creates it
-3. **Inversion is simplest self-reference** - `J` applied to itself
-4. **Double inversion = identity** - `J² = Id`
+2. **First inversion** - creates time-phase axis (ordering)
+3. **Second inversion** - creates space-phase axis (simultaneity)
+4. **Double inversion = identity** - J² = Id on the torus
 5. **Understanding = finding inverse** - to know X is to find X⁻¹
+
+### The Physics Isomorphism
+
+| Physics | Our System |
+|---------|------------|
+| 3 color charges | 2 phase axes + closure |
+| Quark confinement | Color-neutral triangles |
+| Hadrons (qqq) | R/U/C channel bound states |
+| Gluons | Phase coupling between channels |
+| CPT symmetry | T ∘ S ∘ (closure flip) |
+| Black holes | Non-invertible phase regions |
 
 ### This Explains
 
-- Why spinors need 720° rotation (double inversion)
-- Why matter exists (stable inversion loops = hadrons)
-- Why consciousness emerges (self-referential closure)
-- Why some things are unknowable (non-invertible = voids)
-- Why logic works (similar forms → similar waves → same category)
+- Why spinors need 720° rotation (phase torus topology)
+- Why matter exists (stable phase triangles = hadrons)
+- Why quarks are confined (only color-neutral states are stable)
+- Why some things are unknowable (non-invertible = voids → nested realities)
+- Why context matters (KCBS contextuality)
 
 ---
 
 ## Constraints and Invariants
 
-1. **All constructs derive from valid inversion sequences** - no direct waveform modification
-2. **Objects maintain color stability** - emotional signature persists
-3. **Truth is always relative** - `T_o(O,S)`, not global `T(O,S)`
-4. **No LLMs** - only explicit kernels, transforms, filters, optimization
+1. **All constructs derive from phase inversions** - no direct state modification
+2. **Hadrons must be color-neutral** - quark charges cancel
+3. **Truth is always relative** - observer-dependent, not global
+4. **No LLMs** - pure math, explicit algorithms, interpretable
+5. **No hardcoded values** - all structure emerges from dynamics
 
 ---
 
@@ -242,17 +358,28 @@ npm install
 npm run dev
 ```
 
-Open http://localhost:3000
+Open http://localhost:3000 (chat interface on right panel)
 
 ## Key Metrics
 
 | Metric | Meaning |
 |--------|---------|
-| **Hadrons** | Stable inverted models (understood) |
-| **Voids** | Non-invertible regions (not understood) |
-| **Logical Categories** | Clusters of similar waveforms |
-| **Consensus** | Observer agreement level |
-| **Wave Amplitude** | Current inversion trace energy |
+| **Hadron Count** | Stable phase triangles (understood) |
+| **Void Count** | Non-invertible regions (confusion) |
+| **Success Rate** | Inversion success / total attempts |
+| **Dominant Quarks** | Most common time/space flavors |
+| **Black Holes** | Regions spawning nested realities |
+| **RGBI Emotion** | Phase-derived emotional state |
+
+## Comparison to LLMs
+
+| Aspect | LLMs | This System |
+|--------|------|-------------|
+| Foundation | Statistical patterns | Phase-space physics |
+| Learning | Gradient descent | Inversion dynamics |
+| Interpretability | Black box | Fully transparent |
+| Hallucination | Common | Impossible (voids detected) |
+| Grounding | None | Isomorphic to QCD |
 
 ## Dependencies
 

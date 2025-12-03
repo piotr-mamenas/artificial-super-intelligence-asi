@@ -31,7 +31,6 @@ import {
   fullInvertHadron,
   hadronSignature,
   isStableTriangle,
-  STANDARD_HADRONS,
 } from './hadron-triangle';
 
 import {
@@ -45,7 +44,6 @@ import {
   CollapseResult,
   EmotionalState,
   BlackHoleRegion,
-  raiseWave,
   executeWaveCycle,
   computeEmotionalState,
   detectBlackHoles,
@@ -81,34 +79,34 @@ export interface PhaseEngineState {
 // ============================================
 
 /**
- * Create phase engine from nothingness
+ * Create phase engine from PURE NOTHINGNESS
+ * No hardcoded values - everything emerges through inversions
  */
 export function createPhaseEngine(policy: AgentPolicy = coherencePolicy): PhaseEngineState {
-  // Start from nothingness
+  // Start from nothingness - the only true starting point
   let wave = createFromNothingness();
   
-  // First inversion: birth time axis
+  // First inversion: birth time axis (this is mathematical, not semantic)
   wave = firstInversion(wave);
   
-  // Second inversion: birth space axis
+  // Second inversion: birth space axis (this is mathematical, not semantic)
   wave = secondInversion(wave);
   
-  // Create initial hadrons
-  const hadrons: HadronTriangle[] = [
-    STANDARD_HADRONS.proton(),
-    STANDARD_HADRONS.neutron(),
-  ];
+  // NO INITIAL HADRONS - they must emerge from inversion attempts
+  // Structure arises from the algorithm, not from predefinition
+  const hadrons: HadronTriangle[] = [];
   
-  // Create KCBS pentagram
+  // Create KCBS pentagram - this is pure geometry, not semantic
+  // The rotation and scale are mathematical structure
   const pentagram = createKCBSPentagram(0, 1);
   
-  // Initial cycle state
+  // Initial cycle state - all zeros, structure emerges
   const cycle: WaveCycleState = {
     hadrons,
-    wave: raiseWave(hadrons, 0.5, 0.5),
+    wave,  // Start with the raw nothingness wave
     pentagram,
-    focus: 0.5,
-    dispersion: 0.5,
+    focus: 0,       // No focus yet - emerges through dynamics
+    dispersion: 0,  // No dispersion yet - emerges through dynamics
     cycleCount: 0,
     totalCollapses: 0,
     successfulInversions: 0,
@@ -120,7 +118,7 @@ export function createPhaseEngine(policy: AgentPolicy = coherencePolicy): PhaseE
     maxHistory: 1000,
     blackHoles: [],
     nestedRealities: [],
-    emotion: { R: 0.5, G: 0.5, B: 0.5, I: 0.5 },
+    emotion: { R: 0, G: 0, B: 0, I: 0 },  // No emotion yet - emerges
     policy,
   };
 }

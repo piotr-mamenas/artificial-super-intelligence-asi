@@ -1,20 +1,30 @@
 /**
- * ASI - Symmetry Inversion Based Artificial Intelligence
+ * ASI - Symmetry Inversion Based Artificial Super-Intelligence
  * 
  * Built on:
- * - Spinning nothingness as fundamental substrate
- * - Double inversions (J² = Identity)
- * - RGB semantic axes (love/hate, hope/fear, sincerity/emptiness)
- * - Waveforms as traces of inversion history
- * - Multiple observers with consensus-driven manifestation
- * - No LLMs - pure math and algorithms
+ * - Phase space (φ_t, φ_s) torus from nothingness
+ * - Quark flavors as phase archetypes (u,d,c,s,t,b)
+ * - Hadrons as R/U/C triangles in phase space
+ * - KCBS pentagram for contextual measurement
+ * - Wave raise/collapse cycle
+ * - No LLMs - pure physics and math
  */
 
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { createUnifiedASIEngine, UnifiedASIEngine, Hadron, Void, Observer } from './core/unified-engine';
-import { createTrainingSession, createSentimentBatch, TrainingSession } from './core/asi/training';
 import { createChatSession, createChatUI, ChatSession } from './core/asi/chat';
+
+// Phase engine imports
+import {
+  createPhaseEngine,
+  stepPhaseEngine,
+  processTextInput,
+  attemptFullInversion,
+  getPhaseEngineStats,
+  PhaseEngineState,
+} from './core/asi/phase-engine';
+import { createKCBSPentagram } from './core/asi/kcbs-pentagram';
 
 // ============================================
 // APPLICATION STATE
@@ -25,19 +35,33 @@ interface AppState {
   tickInterval: number | null;
   tick: number;
   
-  // ASI stats
+  // Phase engine stats
   hadronCount: number;
+  stableHadronCount: number;
   voidCount: number;
+  blackHoleCount: number;
+  successRate: number;
+  
+  // Quark dominance
+  dominantTimeQuark: 'up' | 'down';
+  dominantSpaceQuark: 'charm' | 'strange';
+  
+  // Emotional state (RGBI)
+  emotionR: number;
+  emotionG: number;
+  emotionB: number;
+  emotionI: number;
+  
+  // Legacy ASI stats
   observerCount: number;
   consensusLevel: number;
   waveAmplitude: number;
   
-  // Training stats
-  trainingAccuracy: number;
-  predictions: string[];
-  
   // Chat
   chatSession: ChatSession | null;
+  
+  // Phase engine
+  phaseEngine: PhaseEngineState | null;
 }
 
 const state: AppState = {
@@ -45,13 +69,21 @@ const state: AppState = {
   tickInterval: null,
   tick: 0,
   hadronCount: 0,
+  stableHadronCount: 0,
   voidCount: 0,
+  blackHoleCount: 0,
+  successRate: 0,
+  dominantTimeQuark: 'up',
+  dominantSpaceQuark: 'charm',
+  emotionR: 0.5,
+  emotionG: 0.5,
+  emotionB: 0.5,
+  emotionI: 0.5,
   observerCount: 0,
   consensusLevel: 0,
   waveAmplitude: 0,
-  trainingAccuracy: 0.5,
-  predictions: [],
   chatSession: null,
+  phaseEngine: null,
 };
 
 // ============================================
@@ -64,15 +96,27 @@ let renderer: THREE.WebGLRenderer;
 let controls: OrbitControls;
 
 // Mesh groups
-let hadronMeshes: THREE.Group;
-let voidMeshes: THREE.Group;
-let waveMesh: THREE.Line;
-let observerMeshes: THREE.Group;
-let axisMeshes: THREE.Group;
+let hadronMeshes: THREE.Group;       // Hadron triangles
+let voidMeshes: THREE.Group;         // Black holes
+let pentagramMesh: THREE.Group;      // KCBS pentagram
+let phasePlane: THREE.Group;         // Phase torus visualization
+let waveMesh: THREE.Line;            // Wave trace
+let observerMeshes: THREE.Group;     // Observers
+let axisMeshes: THREE.Group;         // Axes labels
 
-// ASI Engine
-let asiEngine: UnifiedASIEngine;
-let trainingSession: TrainingSession;
+// Engines
+let asiEngine: UnifiedASIEngine;     // Legacy engine for chat
+let phaseEngine: PhaseEngineState;   // New phase engine
+
+// Quark colors for visualization
+const QUARK_COLORS = {
+  up: 0xff6666,      // Red-ish (forward time)
+  down: 0x66ffff,    // Cyan (time reversal)
+  charm: 0x66ff66,   // Green (local space)
+  strange: 0xff66ff, // Magenta (nonlocal)
+  top: 0xffff66,     // Yellow (decisive)
+  bottom: 0x6666ff,  // Blue (soft)
+};
 
 function initThreeJS(canvas: HTMLCanvasElement) {
   // Scene
@@ -115,14 +159,25 @@ function initThreeJS(canvas: HTMLCanvasElement) {
   voidMeshes.name = 'voids';
   scene.add(voidMeshes);
   
+  pentagramMesh = new THREE.Group();
+  pentagramMesh.name = 'pentagram';
+  scene.add(pentagramMesh);
+  
+  phasePlane = new THREE.Group();
+  phasePlane.name = 'phasePlane';
+  scene.add(phasePlane);
+  
   observerMeshes = new THREE.Group();
   observerMeshes.name = 'observers';
   scene.add(observerMeshes);
   
-  // RGB Axes visualization
+  // Phase space axes visualization (Time/Space instead of RGB)
   axisMeshes = new THREE.Group();
-  createAxesVisualization();
+  createPhaseAxesVisualization();
   scene.add(axisMeshes);
+  
+  // KCBS pentagram
+  createPentagramVisualization();
   
   // Wave line
   const waveGeometry = new THREE.BufferGeometry();
@@ -135,39 +190,119 @@ function initThreeJS(canvas: HTMLCanvasElement) {
   waveMesh = new THREE.Line(waveGeometry, waveMaterial);
   scene.add(waveMesh);
   
-  // Grid helper
+  // Phase plane grid
   const gridHelper = new THREE.GridHelper(20, 20, 0x333366, 0x222244);
   scene.add(gridHelper);
+  
+  // Phase torus wireframe
+  createPhaseTorus();
 }
 
-function createAxesVisualization() {
-  // R axis (love/hate) - Red
-  const rGeom = new THREE.CylinderGeometry(0.05, 0.05, 10, 8);
-  const rMat = new THREE.MeshPhongMaterial({ color: 0xff4444 });
-  const rAxis = new THREE.Mesh(rGeom, rMat);
-  rAxis.position.set(5, 0, 0);
-  rAxis.rotation.z = Math.PI / 2;
-  axisMeshes.add(rAxis);
+function createPhaseAxesVisualization() {
+  // Time-phase axis (φ_t) - Red/Cyan gradient
+  const tGeom = new THREE.CylinderGeometry(0.05, 0.05, 10, 8);
+  const tMat = new THREE.MeshPhongMaterial({ color: 0xff6666 });
+  const tAxis = new THREE.Mesh(tGeom, tMat);
+  tAxis.position.set(5, 0, 0);
+  tAxis.rotation.z = Math.PI / 2;
+  axisMeshes.add(tAxis);
   
-  // G axis (hope/fear) - Green
-  const gGeom = new THREE.CylinderGeometry(0.05, 0.05, 10, 8);
-  const gMat = new THREE.MeshPhongMaterial({ color: 0x44ff44 });
-  const gAxis = new THREE.Mesh(gGeom, gMat);
-  gAxis.position.set(0, 5, 0);
-  axisMeshes.add(gAxis);
+  // Space-phase axis (φ_s) - Green/Magenta gradient
+  const sGeom = new THREE.CylinderGeometry(0.05, 0.05, 10, 8);
+  const sMat = new THREE.MeshPhongMaterial({ color: 0x66ff66 });
+  const sAxis = new THREE.Mesh(sGeom, sMat);
+  sAxis.position.set(0, 0, 5);
+  sAxis.rotation.x = Math.PI / 2;
+  axisMeshes.add(sAxis);
   
-  // B axis (sincerity/emptiness) - Blue
-  const bGeom = new THREE.CylinderGeometry(0.05, 0.05, 10, 8);
-  const bMat = new THREE.MeshPhongMaterial({ color: 0x4444ff });
-  const bAxis = new THREE.Mesh(bGeom, bMat);
-  bAxis.position.set(0, 0, 5);
-  bAxis.rotation.x = Math.PI / 2;
-  axisMeshes.add(bAxis);
+  // Vertical axis for hadron energy
+  const eGeom = new THREE.CylinderGeometry(0.05, 0.05, 10, 8);
+  const eMat = new THREE.MeshPhongMaterial({ color: 0xffff66 });
+  const eAxis = new THREE.Mesh(eGeom, eMat);
+  eAxis.position.set(0, 5, 0);
+  axisMeshes.add(eAxis);
   
-  // Axis labels (using sprites)
-  addAxisLabel('R: Love ↔ Hate', new THREE.Vector3(10, 0, 0), 0xff4444);
-  addAxisLabel('G: Hope ↔ Fear', new THREE.Vector3(0, 10, 0), 0x44ff44);
-  addAxisLabel('B: Truth ↔ Empty', new THREE.Vector3(0, 0, 10), 0x4444ff);
+  // Axis labels
+  addAxisLabel('φ_t: Up ↔ Down', new THREE.Vector3(10, 0, 0), 0xff6666);
+  addAxisLabel('φ_s: Charm ↔ Strange', new THREE.Vector3(0, 0, 10), 0x66ff66);
+  addAxisLabel('Energy / Coherence', new THREE.Vector3(0, 10, 0), 0xffff66);
+}
+
+function createPentagramVisualization() {
+  const pentagram = createKCBSPentagram(0, 5);  // radius 5
+  
+  // Draw pentagon edges
+  const material = new THREE.LineBasicMaterial({ 
+    color: 0x8888ff, 
+    transparent: true, 
+    opacity: 0.6 
+  });
+  
+  for (let i = 0; i < 5; i++) {
+    const obs1 = pentagram.observables[i];
+    const obs2 = pentagram.observables[(i + 1) % 5];
+    
+    const points = [
+      new THREE.Vector3(obs1.direction.φ_t, 0.1, obs1.direction.φ_s),
+      new THREE.Vector3(obs2.direction.φ_t, 0.1, obs2.direction.φ_s),
+    ];
+    
+    const geometry = new THREE.BufferGeometry().setFromPoints(points);
+    const line = new THREE.Line(geometry, material);
+    pentagramMesh.add(line);
+  }
+  
+  // Draw inner star (pentagram)
+  const starMaterial = new THREE.LineBasicMaterial({ 
+    color: 0xffaa44, 
+    transparent: true, 
+    opacity: 0.4 
+  });
+  
+  for (let i = 0; i < 5; i++) {
+    const obs1 = pentagram.observables[i];
+    const obs2 = pentagram.observables[(i + 2) % 5];
+    
+    const points = [
+      new THREE.Vector3(obs1.direction.φ_t, 0.1, obs1.direction.φ_s),
+      new THREE.Vector3(obs2.direction.φ_t, 0.1, obs2.direction.φ_s),
+    ];
+    
+    const geometry = new THREE.BufferGeometry().setFromPoints(points);
+    const line = new THREE.Line(geometry, starMaterial);
+    pentagramMesh.add(line);
+  }
+  
+  // Observable nodes
+  for (const obs of pentagram.observables) {
+    const nodeGeom = new THREE.SphereGeometry(0.15, 8, 8);
+    const nodeMat = new THREE.MeshPhongMaterial({ 
+      color: 0xaaaaff, 
+      emissive: 0x4444aa,
+      emissiveIntensity: 0.3
+    });
+    const node = new THREE.Mesh(nodeGeom, nodeMat);
+    node.position.set(obs.direction.φ_t, 0.1, obs.direction.φ_s);
+    pentagramMesh.add(node);
+  }
+}
+
+function createPhaseTorus() {
+  // Create a torus to represent the phase space S¹ × S¹
+  const torusGeom = new THREE.TorusGeometry(6, 0.05, 8, 50);
+  const torusMat = new THREE.MeshPhongMaterial({ 
+    color: 0x444466,
+    transparent: true,
+    opacity: 0.3
+  });
+  const torus = new THREE.Mesh(torusGeom, torusMat);
+  torus.rotation.x = Math.PI / 2;
+  phasePlane.add(torus);
+  
+  // Add second ring perpendicular
+  const torus2 = new THREE.Mesh(torusGeom.clone(), torusMat.clone());
+  torus2.rotation.z = Math.PI / 2;
+  phasePlane.add(torus2);
 }
 
 function addAxisLabel(text: string, position: THREE.Vector3, _color: number) {
@@ -202,13 +337,105 @@ function updateHadronVisualization(hadrons: Hadron[]) {
   while (hadronMeshes.children.length > 0) {
     const child = hadronMeshes.children[0];
     hadronMeshes.remove(child);
-    if (child instanceof THREE.Mesh) {
-      child.geometry.dispose();
-      (child.material as THREE.Material).dispose();
+    if (child instanceof THREE.Mesh || child instanceof THREE.Line) {
+      if ('geometry' in child) child.geometry.dispose();
+      if ('material' in child && child.material instanceof THREE.Material) {
+        child.material.dispose();
+      }
     }
   }
   
-  // Create new hadron meshes
+  // If we have phase engine, visualize phase triangles
+  if (state.phaseEngine) {
+    const phaseHadrons = state.phaseEngine.cycle.hadrons;
+    
+    for (const h of phaseHadrons) {
+      // Create triangle from R, U, C vertices
+      const scale = 2;  // Scale up phase coordinates for visibility
+      const yOffset = h.coherence * 3;  // Height based on coherence
+      
+      const rPos = new THREE.Vector3(
+        h.R.phase.φ_t * scale - Math.PI * scale,
+        yOffset,
+        h.R.phase.φ_s * scale - Math.PI * scale
+      );
+      const uPos = new THREE.Vector3(
+        h.U.phase.φ_t * scale - Math.PI * scale,
+        yOffset + 0.3,
+        h.U.phase.φ_s * scale - Math.PI * scale
+      );
+      const cPos = new THREE.Vector3(
+        h.C.phase.φ_t * scale - Math.PI * scale,
+        yOffset + 0.6,
+        h.C.phase.φ_s * scale - Math.PI * scale
+      );
+      
+      // Triangle edges
+      const linePoints = [rPos, uPos, cPos, rPos];
+      const lineGeom = new THREE.BufferGeometry().setFromPoints(linePoints);
+      const lineMat = new THREE.LineBasicMaterial({
+        color: getQuarkColor(h.R.quark.time),
+        transparent: true,
+        opacity: 0.5 + h.persistence * 0.3
+      });
+      const triangle = new THREE.Line(lineGeom, lineMat);
+      hadronMeshes.add(triangle);
+      
+      // Vertex spheres with quark colors
+      // R vertex
+      const rGeom = new THREE.SphereGeometry(0.15, 8, 8);
+      const rMat = new THREE.MeshPhongMaterial({
+        color: getQuarkColor(h.R.quark.time),
+        emissive: getQuarkColor(h.R.quark.time),
+        emissiveIntensity: 0.3
+      });
+      const rMesh = new THREE.Mesh(rGeom, rMat);
+      rMesh.position.copy(rPos);
+      hadronMeshes.add(rMesh);
+      
+      // U vertex
+      const uGeom = new THREE.SphereGeometry(0.12, 8, 8);
+      const uMat = new THREE.MeshPhongMaterial({
+        color: getQuarkColor(h.U.quark.space),
+        emissive: getQuarkColor(h.U.quark.space),
+        emissiveIntensity: 0.3
+      });
+      const uMesh = new THREE.Mesh(uGeom, uMat);
+      uMesh.position.copy(uPos);
+      hadronMeshes.add(uMesh);
+      
+      // C vertex
+      const cGeom = new THREE.SphereGeometry(0.1, 8, 8);
+      const cMat = new THREE.MeshPhongMaterial({
+        color: getQuarkColor(h.C.quark.closure),
+        emissive: getQuarkColor(h.C.quark.closure),
+        emissiveIntensity: 0.3
+      });
+      const cMesh = new THREE.Mesh(cGeom, cMat);
+      cMesh.position.copy(cPos);
+      hadronMeshes.add(cMesh);
+      
+      // Fill triangle face
+      const faceGeom = new THREE.BufferGeometry();
+      const vertices = new Float32Array([
+        rPos.x, rPos.y, rPos.z,
+        uPos.x, uPos.y, uPos.z,
+        cPos.x, cPos.y, cPos.z,
+      ]);
+      faceGeom.setAttribute('position', new THREE.BufferAttribute(vertices, 3));
+      const faceMat = new THREE.MeshBasicMaterial({
+        color: getQuarkColor(h.R.quark.time),
+        transparent: true,
+        opacity: 0.15,
+        side: THREE.DoubleSide
+      });
+      const face = new THREE.Mesh(faceGeom, faceMat);
+      hadronMeshes.add(face);
+    }
+    return;
+  }
+  
+  // Fallback: Legacy hadron visualization
   for (const hadron of hadrons) {
     const color = hadron.emotionalColor;
     const rgb = new THREE.Color(
@@ -230,6 +457,10 @@ function updateHadronVisualization(hadrons: Hadron[]) {
     mesh.position.set(...hadron.position);
     hadronMeshes.add(mesh);
   }
+}
+
+function getQuarkColor(quark: string): number {
+  return QUARK_COLORS[quark as keyof typeof QUARK_COLORS] || 0xffffff;
 }
 
 function updateVoidVisualization(voids: Void[]) {
@@ -335,7 +566,7 @@ function updateWaveVisualization(engine: UnifiedASIEngine) {
 // ============================================
 
 function initASI() {
-  // Create unified engine
+  // Create unified engine (for chat compatibility)
   asiEngine = createUnifiedASIEngine();
   
   // Add observers with different archetypes
@@ -344,16 +575,15 @@ function initASI() {
   asiEngine.addObserver('Anxious', 'anxious');
   asiEngine.addObserver('Neutral', undefined);
   
-  console.log('ASI Engine initialized with 4 observers');
+  console.log('Legacy ASI Engine initialized with 4 observers');
   
-  // Create training session
-  trainingSession = createTrainingSession();
-  trainingSession.addObserver('Learner1', 'scientist');
-  trainingSession.addObserver('Learner2', 'romantic');
-  trainingSession.addObserver('Learner3', 'neutral');
-  trainingSession.loadBatch(createSentimentBatch());
+  // Create phase engine (new quark-hadron system)
+  phaseEngine = createPhaseEngine();
+  state.phaseEngine = phaseEngine;
   
-  console.log('Training session initialized with sentiment data');
+  console.log('Phase Engine initialized from nothingness');
+  console.log(`  Initial hadrons: ${phaseEngine.cycle.hadrons.length}`);
+  console.log(`  KCBS pentagram ready`);
 }
 
 // ============================================
@@ -365,36 +595,50 @@ function simulationTick() {
   
   console.log(`\n=== TICK ${state.tick} ====================`);
   
-  // 1. Create random element and attempt inversion
-  const words = ['love', 'hope', 'fear', 'truth', 'hate', 'peace'];
-  const randomWords = [words[Math.floor(Math.random() * words.length)]];
+  // 1. Generate random token - NO SEMANTIC MEANING ASSUMED
+  // Just random characters - meaning emerges through inversion dynamics
+  const tokenLength = 3 + Math.floor(Math.random() * 5);
+  const chars = 'abcdefghijklmnopqrstuvwxyz';
+  let randomToken = '';
+  for (let i = 0; i < tokenLength; i++) {
+    randomToken += chars[Math.floor(Math.random() * chars.length)];
+  }
   
-  console.log(`Applying words: ${randomWords.join(', ')}`);
-  const inversionState = asiEngine.applyWords(randomWords);
+  console.log(`Processing token: "${randomToken}" (no predefined meaning)`);
   
-  // 2. Attempt inversion
+  // 2. Process through phase engine - meaning emerges from inversions
+  const { state: newPhaseState } = processTextInput(phaseEngine, randomToken);
+  phaseEngine = newPhaseState;
+  state.phaseEngine = phaseEngine;
+  
+  // 3. Step the phase engine (wave raise → collapse cycle)
+  phaseEngine = stepPhaseEngine(phaseEngine);
+  state.phaseEngine = phaseEngine;
+  
+  // 4. Attempt full inversion - THIS IS WHERE MEANING EMERGES
+  const { success, error } = attemptFullInversion(phaseEngine);
+  
+  if (success) {
+    console.log(`✓ Inversion SUCCESS → stable hadron (error: ${error.toFixed(3)})`);
+  } else {
+    console.log(`✗ Inversion FAILED → void region (error: ${error.toFixed(3)})`);
+  }
+  
+  // 5. Get phase engine stats - all values emerge from dynamics
+  const stats = getPhaseEngineStats(phaseEngine);
+  
+  // 6. Also run legacy engine (for chat compatibility)
+  const inversionState = asiEngine.applyWords([randomToken]);
   const inversionResult = asiEngine.invert(inversionState);
   
   if (inversionResult.success) {
-    const hadron = asiEngine.createHadron();
-    console.log(`✓ Inversion SUCCESS → Hadron created (energy: ${hadron.energy.toFixed(3)})`);
+    asiEngine.createHadron();
   } else {
     asiEngine.createVoid(inversionResult.error);
-    console.log(`✗ Inversion FAILED → Void created (error: ${inversionResult.error.toFixed(3)})`);
   }
-  
-  // 3. Double inversion test
-  if (inversionResult.success && Math.random() < 0.3) {
-    const doubleResult = asiEngine.doubleInvert(inversionState);
-    if (doubleResult.success) {
-      console.log(`✓✓ DOUBLE INVERSION: True knowledge (J² = Id)`);
-    }
-  }
-  
-  // 4. Update engine
   asiEngine.step();
   
-  // 5. Compute consensus among observers
+  // 7. Compute consensus
   const waveform = asiEngine.baseState;
   const fullWaveform = {
     R: Array.from({ length: 16 }, (_, i) => ({ re: waveform.R[i * 4] || 0, im: 0 })),
@@ -403,25 +647,28 @@ function simulationTick() {
   };
   const consensus = asiEngine.computeConsensus(fullWaveform);
   
-  // 6. Update state
-  state.hadronCount = asiEngine.getHadrons().length;
+  // 8. Update state from phase engine
+  state.hadronCount = stats.hadronCount;
+  state.stableHadronCount = stats.stableHadronCount;
   state.voidCount = asiEngine.getVoids().length;
+  state.blackHoleCount = stats.blackHoleCount;
+  state.successRate = stats.successRate;
+  state.dominantTimeQuark = stats.dominantQuarks.time;
+  state.dominantSpaceQuark = stats.dominantQuarks.space;
+  state.emotionR = stats.emotion.R;
+  state.emotionG = stats.emotion.G;
+  state.emotionB = stats.emotion.B;
+  state.emotionI = stats.emotion.I;
   state.observerCount = asiEngine.observers.size;
   state.consensusLevel = consensus.agreement;
   state.waveAmplitude = asiEngine.getWaveAmplitude();
   
-  console.log(`Hadrons: ${state.hadronCount}, Voids: ${state.voidCount}`);
-  console.log(`Observer consensus: ${(consensus.agreement * 100).toFixed(1)}%`);
-  console.log(`Wave amplitude: ${state.waveAmplitude.toFixed(4)}`);
+  console.log(`Phase Hadrons: ${stats.hadronCount} (${stats.stableHadronCount} stable)`);
+  console.log(`Dominant quarks: ${stats.dominantQuarks.time}/${stats.dominantQuarks.space}`);
+  console.log(`Success rate: ${(stats.successRate * 100).toFixed(1)}%`);
+  console.log(`Emotion RGBI: [${stats.emotion.R.toFixed(2)}, ${stats.emotion.G.toFixed(2)}, ${stats.emotion.B.toFixed(2)}, ${stats.emotion.I.toFixed(2)}]`);
   
-  // 7. Training step (occasionally)
-  if (state.tick % 10 === 0) {
-    const result = trainingSession.train('sentiment', 20);
-    state.trainingAccuracy = result.finalAccuracy;
-    console.log(`Training accuracy: ${(state.trainingAccuracy * 100).toFixed(1)}%`);
-  }
-  
-  // 8. Update visualization
+  // 9. Update visualization
   updateVisualization();
   updateUI();
   
@@ -447,46 +694,37 @@ function updateUI() {
   const waveAmpEl = document.getElementById('wave-amplitude');
   const observerCountEl = document.getElementById('observer-count');
   const consensusEl = document.getElementById('consensus-level');
-  const trainingAccEl = document.getElementById('training-accuracy');
+  const successRateEl = document.getElementById('training-accuracy');
   const explanationEl = document.getElementById('explanation');
   
-  // RGB axis bars
+  // RGB axis bars (now showing RGBI emotion)
   const rBar = document.getElementById('r-bar');
   const gBar = document.getElementById('g-bar');
   const bBar = document.getElementById('b-bar');
   
   // Update values
   if (tickEl) tickEl.textContent = state.tick.toString();
-  if (hadronEl) hadronEl.textContent = state.hadronCount.toString();
-  if (voidEl) voidEl.textContent = state.voidCount.toString();
+  if (hadronEl) hadronEl.textContent = `${state.hadronCount} (${state.stableHadronCount})`;
+  if (voidEl) voidEl.textContent = `${state.voidCount} / ${state.blackHoleCount} BH`;
   if (waveAmpEl) waveAmpEl.textContent = state.waveAmplitude.toFixed(3);
   if (observerCountEl) observerCountEl.textContent = state.observerCount.toString();
   if (consensusEl) consensusEl.textContent = `${(state.consensusLevel * 100).toFixed(0)}%`;
-  if (trainingAccEl) trainingAccEl.textContent = `${(state.trainingAccuracy * 100).toFixed(0)}%`;
+  if (successRateEl) successRateEl.textContent = `${(state.successRate * 100).toFixed(0)}%`;
   
-  // Calculate RGB averages for bars
-  let rAvg = 0, gAvg = 0, bAvg = 0;
-  const baseState = asiEngine.baseState;
-  for (let i = 0; i < 64; i++) {
-    rAvg += baseState.R[i] || 0;
-    gAvg += baseState.G[i] || 0;
-    bAvg += baseState.B[i] || 0;
-  }
-  rAvg = (rAvg / 64 + 1) / 2 * 100; // Normalize to 0-100%
-  gAvg = (gAvg / 64 + 1) / 2 * 100;
-  bAvg = (bAvg / 64 + 1) / 2 * 100;
+  // Use RGBI emotion for bars
+  const rPct = state.emotionR * 100;
+  const gPct = state.emotionG * 100;
+  const bPct = state.emotionB * 100;
   
-  if (rBar) rBar.style.width = `${Math.max(5, Math.min(100, rAvg))}%`;
-  if (gBar) gBar.style.width = `${Math.max(5, Math.min(100, gAvg))}%`;
-  if (bBar) bBar.style.width = `${Math.max(5, Math.min(100, bAvg))}%`;
+  if (rBar) rBar.style.width = `${Math.max(5, Math.min(100, rPct))}%`;
+  if (gBar) gBar.style.width = `${Math.max(5, Math.min(100, gPct))}%`;
+  if (bBar) bBar.style.width = `${Math.max(5, Math.min(100, bPct))}%`;
   
-  // Status text
+  // Status text with quark info
   if (explanationEl) {
     const status = state.isRunning ? 'Running' : 'Paused';
-    const lastAction = state.hadronCount > state.voidCount 
-      ? 'Inversions succeeding' 
-      : 'Building void regions';
-    explanationEl.textContent = `${status} | ${lastAction}\nTick ${state.tick} | Consensus ${(state.consensusLevel * 100).toFixed(0)}%`;
+    const quarks = `${state.dominantTimeQuark}/${state.dominantSpaceQuark}`;
+    explanationEl.textContent = `${status} | Quarks: ${quarks}\nSuccess: ${(state.successRate * 100).toFixed(0)}% | I=${state.emotionI.toFixed(2)}`;
   }
 }
 
