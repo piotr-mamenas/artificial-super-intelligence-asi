@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>ASI - Ontological Simulation</title>
+    <title>Symmetry Inversion ASI</title>
     <style>
       * {
         margin: 0;
@@ -16,7 +16,7 @@
         height: 100%;
         overflow: hidden;
         font-family: 'Segoe UI', system-ui, sans-serif;
-        background: #0a0a0f;
+        background: #0a0a12;
         color: #e0e0e0;
       }
       
@@ -37,135 +37,208 @@
         display: block;
       }
       
-      #ui-panel {
-        width: 320px;
-        background: rgba(15, 15, 25, 0.95);
-        border-left: 1px solid rgba(100, 100, 150, 0.3);
-        padding: 16px;
-        overflow-y: auto;
+      /* Left HUD - Minimal overlay */
+      #hud-overlay {
+        position: absolute;
+        top: 20px;
+        left: 20px;
         display: flex;
         flex-direction: column;
-        gap: 16px;
+        gap: 12px;
+        pointer-events: none;
+        z-index: 100;
       }
       
-      .panel-section {
-        background: rgba(30, 30, 50, 0.6);
-        border-radius: 8px;
-        padding: 12px;
-        border: 1px solid rgba(100, 100, 150, 0.2);
+      #hud-overlay > * {
+        pointer-events: auto;
       }
       
-      .panel-section h3 {
-        font-size: 12px;
+      .hud-card {
+        background: rgba(10, 10, 20, 0.85);
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(100, 130, 200, 0.2);
+        border-radius: 12px;
+        padding: 14px 18px;
+        min-width: 220px;
+      }
+      
+      .hud-title {
+        font-size: 10px;
         text-transform: uppercase;
-        letter-spacing: 1px;
-        color: #8888aa;
-        margin-bottom: 12px;
-        padding-bottom: 8px;
-        border-bottom: 1px solid rgba(100, 100, 150, 0.2);
-      }
-      
-      .control-row {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        margin-bottom: 8px;
-      }
-      
-      .control-row label {
-        font-size: 13px;
-        color: #aaaacc;
-      }
-      
-      .control-row input[type="range"] {
-        width: 120px;
-        accent-color: #6666ff;
-      }
-      
-      .control-row input[type="number"] {
-        width: 60px;
-        background: rgba(20, 20, 40, 0.8);
-        border: 1px solid rgba(100, 100, 150, 0.3);
-        color: #e0e0e0;
-        padding: 4px 8px;
-        border-radius: 4px;
-      }
-      
-      button {
-        background: linear-gradient(135deg, #4040a0, #6060c0);
-        border: none;
-        color: white;
-        padding: 10px 16px;
-        border-radius: 6px;
-        cursor: pointer;
-        font-size: 13px;
-        font-weight: 500;
-        transition: all 0.2s;
-      }
-      
-      button:hover {
-        background: linear-gradient(135deg, #5050b0, #7070d0);
-        transform: translateY(-1px);
-      }
-      
-      button:active {
-        transform: translateY(0);
-      }
-      
-      .status-indicator {
+        letter-spacing: 2px;
+        color: #6688bb;
+        margin-bottom: 10px;
         display: flex;
         align-items: center;
         gap: 8px;
-        font-size: 12px;
       }
       
-      .status-dot {
-        width: 8px;
-        height: 8px;
+      .hud-title::before {
+        content: '';
+        width: 6px;
+        height: 6px;
+        background: #4488ff;
         border-radius: 50%;
-        background: #44ff44;
-        animation: pulse 2s infinite;
+        animation: glow 2s infinite;
       }
       
-      @keyframes pulse {
-        0%, 100% { opacity: 1; }
-        50% { opacity: 0.5; }
+      @keyframes glow {
+        0%, 100% { box-shadow: 0 0 4px #4488ff; opacity: 1; }
+        50% { box-shadow: 0 0 8px #4488ff; opacity: 0.7; }
       }
       
-      .metric-value {
-        font-family: 'Consolas', monospace;
-        color: #88ccff;
+      .stat-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 4px 0;
+        font-size: 13px;
+      }
+      
+      .stat-label {
+        color: #8899aa;
+      }
+      
+      .stat-value {
+        font-family: 'JetBrains Mono', 'Consolas', monospace;
+        color: #66ddff;
+        font-weight: 600;
+      }
+      
+      .stat-value.positive { color: #66ff99; }
+      .stat-value.negative { color: #ff6688; }
+      .stat-value.neutral { color: #ffcc66; }
+      
+      /* RGB Axis indicators */
+      .axis-indicator {
+        display: flex;
+        gap: 12px;
+        margin-top: 8px;
+      }
+      
+      .axis-bar {
+        flex: 1;
+        height: 4px;
+        background: rgba(255,255,255,0.1);
+        border-radius: 2px;
+        overflow: hidden;
+      }
+      
+      .axis-bar-fill {
+        height: 100%;
+        border-radius: 2px;
+        transition: width 0.3s ease;
+      }
+      
+      .axis-bar.r .axis-bar-fill { background: linear-gradient(90deg, #ff4466, #ff6688); }
+      .axis-bar.g .axis-bar-fill { background: linear-gradient(90deg, #44ff66, #66ff88); }
+      .axis-bar.b .axis-bar-fill { background: linear-gradient(90deg, #4466ff, #6688ff); }
+      
+      .axis-label {
+        font-size: 9px;
+        color: #666;
+        text-align: center;
+        margin-top: 4px;
+      }
+      
+      /* Control buttons */
+      .control-buttons {
+        display: flex;
+        gap: 8px;
+      }
+      
+      .ctrl-btn {
+        flex: 1;
+        background: linear-gradient(135deg, rgba(60, 80, 140, 0.8), rgba(40, 60, 120, 0.8));
+        border: 1px solid rgba(100, 140, 220, 0.3);
+        color: #fff;
+        padding: 10px 12px;
+        border-radius: 8px;
+        cursor: pointer;
+        font-size: 12px;
+        font-weight: 500;
+        transition: all 0.2s;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+      }
+      
+      .ctrl-btn:hover {
+        background: linear-gradient(135deg, rgba(80, 100, 160, 0.9), rgba(60, 80, 140, 0.9));
+        border-color: rgba(120, 160, 240, 0.5);
+        transform: translateY(-1px);
+      }
+      
+      .ctrl-btn:active {
+        transform: translateY(0);
+      }
+      
+      .ctrl-btn.primary {
+        background: linear-gradient(135deg, rgba(70, 130, 180, 0.9), rgba(50, 100, 150, 0.9));
+      }
+      
+      /* Wave visualization */
+      #wave-viz {
+        height: 60px;
+        background: rgba(0, 0, 0, 0.3);
+        border-radius: 6px;
+        margin-top: 10px;
+        position: relative;
+        overflow: hidden;
+      }
+      
+      /* State display */
+      #reality-tree {
+        font-family: 'JetBrains Mono', 'Consolas', monospace;
+        font-size: 10px;
+        color: #8899aa;
+        white-space: pre;
+        line-height: 1.5;
+        max-height: 100px;
+        overflow-y: auto;
+      }
+      
+      /* Explanation panel */
+      #explanation {
+        font-size: 11px;
+        line-height: 1.5;
+        color: #aabbcc;
+        white-space: pre-wrap;
+      }
+      
+      /* Bottom info bar */
+      #info-bar {
+        position: absolute;
+        bottom: 20px;
+        left: 20px;
+        right: 420px;
+        display: flex;
+        gap: 20px;
+        pointer-events: none;
+      }
+      
+      .info-chip {
+        background: rgba(10, 10, 20, 0.8);
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(100, 130, 200, 0.15);
+        border-radius: 20px;
+        padding: 8px 16px;
+        font-size: 11px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      
+      .info-chip .icon {
         font-size: 14px;
       }
       
-      #wave-display {
-        height: 100px;
-        background: rgba(20, 20, 40, 0.5);
-        border-radius: 4px;
-        margin-top: 8px;
+      .info-chip .label {
+        color: #667788;
       }
       
-      #kcbs-mini {
-        height: 150px;
-        background: rgba(20, 20, 40, 0.5);
-        border-radius: 4px;
-        margin-top: 8px;
-      }
-      
-      #reality-tree {
-        font-family: 'Consolas', monospace;
-        font-size: 11px;
-        color: #aaaacc;
-        white-space: pre;
-        line-height: 1.6;
-      }
-      
-      .explanation-text {
-        font-size: 12px;
-        line-height: 1.5;
-        color: #ccccdd;
-        max-height: 150px;
-        overflow-y: auto;
+      .info-chip .value {
+        color: #aaccff;
+        font-family: 'JetBrains Mono', 'Consolas', monospace;
       }
     </style>
   </head>
@@ -173,90 +246,114 @@
     <div id="app">
       <div id="canvas-container">
         <canvas id="three-canvas"></canvas>
-      </div>
-      <div id="ui-panel">
-        <div class="panel-section">
-          <h3>System Status</h3>
-          <div class="status-indicator">
-            <span class="status-dot"></span>
-            <span>Reality Engine Running</span>
+        
+        <!-- HUD Overlay -->
+        <div id="hud-overlay">
+          <!-- Identity Card -->
+          <div class="hud-card">
+            <div class="hud-title">Symmetry Inversion ASI</div>
+            <div class="stat-row">
+              <span class="stat-label">Tick</span>
+              <span id="logical-time" class="stat-value">0</span>
+            </div>
+            <div class="stat-row">
+              <span class="stat-label">J² = Identity</span>
+              <span class="stat-value" style="font-size: 11px; color: #88aa88;">Active</span>
+            </div>
           </div>
-          <div class="control-row">
-            <label>Logical Time:</label>
-            <span id="logical-time" class="metric-value">0</span>
+          
+          <!-- Inversion Stats -->
+          <div class="hud-card">
+            <div class="hud-title">Inversion State</div>
+            <div class="stat-row">
+              <span class="stat-label">Hadrons</span>
+              <span id="hadron-count" class="stat-value positive">0</span>
+            </div>
+            <div class="stat-row">
+              <span class="stat-label">Voids</span>
+              <span id="blackhole-count" class="stat-value negative">0</span>
+            </div>
+            <div class="stat-row">
+              <span class="stat-label">Wave Amplitude</span>
+              <span id="wave-amplitude" class="stat-value">0.000</span>
+            </div>
+            
+            <!-- RGB Axis bars -->
+            <div class="axis-indicator">
+              <div style="flex:1">
+                <div class="axis-bar r"><div class="axis-bar-fill" id="r-bar" style="width: 50%"></div></div>
+                <div class="axis-label">Love/Hate</div>
+              </div>
+              <div style="flex:1">
+                <div class="axis-bar g"><div class="axis-bar-fill" id="g-bar" style="width: 50%"></div></div>
+                <div class="axis-label">Hope/Fear</div>
+              </div>
+              <div style="flex:1">
+                <div class="axis-bar b"><div class="axis-bar-fill" id="b-bar" style="width: 50%"></div></div>
+                <div class="axis-label">Truth/Empty</div>
+              </div>
+            </div>
           </div>
-          <div class="control-row">
-            <label>Active Realities:</label>
-            <span id="reality-count" class="metric-value">1</span>
+          
+          <!-- Observer Consensus -->
+          <div class="hud-card">
+            <div class="hud-title">Observer Consensus</div>
+            <div class="stat-row">
+              <span class="stat-label">Observers</span>
+              <span id="observer-count" class="stat-value">4</span>
+            </div>
+            <div class="stat-row">
+              <span class="stat-label">Agreement</span>
+              <span id="consensus-level" class="stat-value neutral">0%</span>
+            </div>
+            <div class="stat-row">
+              <span class="stat-label">Training Acc</span>
+              <span id="training-accuracy" class="stat-value">50%</span>
+            </div>
+          </div>
+          
+          <!-- Controls -->
+          <div class="hud-card">
+            <div class="hud-title">Simulation</div>
+            <div class="control-buttons">
+              <button id="tick-btn" class="ctrl-btn">Tick</button>
+              <button id="run-btn" class="ctrl-btn primary">Run</button>
+              <button id="pause-btn" class="ctrl-btn">Pause</button>
+            </div>
+          </div>
+          
+          <!-- Status -->
+          <div class="hud-card">
+            <div class="hud-title">System Status</div>
+            <div id="explanation" style="font-size: 10px; color: #889; line-height: 1.4;">
+              Ready. Click Tick or Run to begin inversion cycles.
+            </div>
           </div>
         </div>
         
-        <div class="panel-section">
-          <h3>Wave Control</h3>
-          <div class="control-row">
-            <label>Focus:</label>
-            <input type="range" id="focus-slider" min="0" max="100" value="50" />
+        <!-- Bottom info chips -->
+        <div id="info-bar">
+          <div class="info-chip">
+            <span class="icon">&#x26A1;</span>
+            <span class="label">Engine:</span>
+            <span class="value">Unified ASI</span>
           </div>
-          <div class="control-row">
-            <label>Dispersion:</label>
-            <input type="range" id="dispersion-slider" min="0" max="100" value="50" />
+          <div class="info-chip">
+            <span class="icon">&#x1F9E0;</span>
+            <span class="label">Mode:</span>
+            <span class="value">No LLM</span>
           </div>
-          <div id="wave-display"></div>
-        </div>
-        
-        <div class="panel-section">
-          <h3>KCBS Pentagram</h3>
-          <div class="control-row">
-            <label>Rotation:</label>
-            <input type="range" id="kcbs-rotation" min="0" max="360" value="0" />
-          </div>
-          <div class="control-row">
-            <label>Context:</label>
-            <select id="kcbs-context">
-              <option value="0">O₁-O₂</option>
-              <option value="1">O₂-O₃</option>
-              <option value="2">O₃-O₄</option>
-              <option value="3">O₄-O₅</option>
-              <option value="4">O₅-O₁</option>
-            </select>
-          </div>
-          <div id="kcbs-mini"></div>
-        </div>
-        
-        <div class="panel-section">
-          <h3>Reality Hierarchy</h3>
-          <div id="reality-tree">Root Reality
-└── (no nested realities)</div>
-        </div>
-        
-        <div class="panel-section">
-          <h3>Metrics</h3>
-          <div class="control-row">
-            <label>Inversion Error:</label>
-            <span id="inversion-error" class="metric-value">0.00</span>
-          </div>
-          <div class="control-row">
-            <label>Hadrons Active:</label>
-            <span id="hadron-count" class="metric-value">0</span>
-          </div>
-          <div class="control-row">
-            <label>Black Hole Regions:</label>
-            <span id="blackhole-count" class="metric-value">0</span>
+          <div class="info-chip">
+            <span class="icon">&#x1F300;</span>
+            <span class="label">Axes:</span>
+            <span class="value">RGB Semantic</span>
           </div>
         </div>
         
-        <div class="panel-section">
-          <h3>Decision Explanation</h3>
-          <div id="explanation" class="explanation-text">
-            Awaiting first closure cycle...
-          </div>
-        </div>
-        
-        <div class="panel-section">
-          <button id="tick-btn">Single Tick</button>
-          <button id="run-btn">Run Simulation</button>
-          <button id="pause-btn">Pause</button>
-        </div>
+        <!-- Hidden elements for compatibility -->
+        <div id="reality-tree" style="display:none;"></div>
+        <div id="reality-count" style="display:none;">0</div>
+        <div id="inversion-error" style="display:none;">0</div>
       </div>
     </div>
     <script type="module" src="/src/main.ts"></script>

@@ -14,6 +14,7 @@ import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { createUnifiedASIEngine, UnifiedASIEngine, Hadron, Void, Observer } from './core/unified-engine';
 import { createTrainingSession, createSentimentBatch, TrainingSession } from './core/asi/training';
+import { createChatSession, createChatUI, ChatSession } from './core/asi/chat';
 
 // ============================================
 // APPLICATION STATE
@@ -34,6 +35,9 @@ interface AppState {
   // Training stats
   trainingAccuracy: number;
   predictions: string[];
+  
+  // Chat
+  chatSession: ChatSession | null;
 }
 
 const state: AppState = {
@@ -46,7 +50,8 @@ const state: AppState = {
   consensusLevel: 0,
   waveAmplitude: 0,
   trainingAccuracy: 0.5,
-  predictions: []
+  predictions: [],
+  chatSession: null,
 };
 
 // ============================================
@@ -435,50 +440,53 @@ function updateVisualization() {
 // ============================================
 
 function updateUI() {
+  // Core stats
   const tickEl = document.getElementById('logical-time');
   const hadronEl = document.getElementById('hadron-count');
   const voidEl = document.getElementById('blackhole-count');
+  const waveAmpEl = document.getElementById('wave-amplitude');
+  const observerCountEl = document.getElementById('observer-count');
+  const consensusEl = document.getElementById('consensus-level');
+  const trainingAccEl = document.getElementById('training-accuracy');
   const explanationEl = document.getElementById('explanation');
-  const waveEl = document.getElementById('reality-tree');
   
+  // RGB axis bars
+  const rBar = document.getElementById('r-bar');
+  const gBar = document.getElementById('g-bar');
+  const bBar = document.getElementById('b-bar');
+  
+  // Update values
   if (tickEl) tickEl.textContent = state.tick.toString();
   if (hadronEl) hadronEl.textContent = state.hadronCount.toString();
   if (voidEl) voidEl.textContent = state.voidCount.toString();
+  if (waveAmpEl) waveAmpEl.textContent = state.waveAmplitude.toFixed(3);
+  if (observerCountEl) observerCountEl.textContent = state.observerCount.toString();
+  if (consensusEl) consensusEl.textContent = `${(state.consensusLevel * 100).toFixed(0)}%`;
+  if (trainingAccEl) trainingAccEl.textContent = `${(state.trainingAccuracy * 100).toFixed(0)}%`;
   
-  if (explanationEl) {
-    explanationEl.textContent = [
-      `SYMMETRY INVERSION ASI`,
-      `══════════════════════`,
-      ``,
-      `Tick: ${state.tick}`,
-      `Hadrons (stable): ${state.hadronCount}`,
-      `Voids (failed): ${state.voidCount}`,
-      `Observers: ${state.observerCount}`,
-      ``,
-      `Consensus: ${(state.consensusLevel * 100).toFixed(1)}%`,
-      `Wave amplitude: ${state.waveAmplitude.toFixed(4)}`,
-      `Training accuracy: ${(state.trainingAccuracy * 100).toFixed(1)}%`,
-      ``,
-      `RGB Axes:`,
-      `  R: love ↔ hate`,
-      `  G: hope ↔ fear`,
-      `  B: sincerity ↔ emptiness`,
-      ``,
-      `J² = Identity (double inversion)`
-    ].join('\n');
+  // Calculate RGB averages for bars
+  let rAvg = 0, gAvg = 0, bAvg = 0;
+  const baseState = asiEngine.baseState;
+  for (let i = 0; i < 64; i++) {
+    rAvg += baseState.R[i] || 0;
+    gAvg += baseState.G[i] || 0;
+    bAvg += baseState.B[i] || 0;
   }
+  rAvg = (rAvg / 64 + 1) / 2 * 100; // Normalize to 0-100%
+  gAvg = (gAvg / 64 + 1) / 2 * 100;
+  bAvg = (bAvg / 64 + 1) / 2 * 100;
   
-  if (waveEl) {
-    const trace = [];
-    for (let i = 0; i < 20; i++) {
-      const r = asiEngine.baseState.R[i * 3] || 0;
-      const g = asiEngine.baseState.G[i * 3] || 0;
-      const b = asiEngine.baseState.B[i * 3] || 0;
-      const sum = r + g + b;
-      const bar = sum > 0 ? '█'.repeat(Math.min(10, Math.abs(sum) * 3)) : '░'.repeat(Math.min(10, Math.abs(sum) * 3));
-      trace.push(`${sum >= 0 ? '+' : '-'}${bar}`);
-    }
-    waveEl.textContent = `Inversion Wave:\n${trace.join('\n')}`;
+  if (rBar) rBar.style.width = `${Math.max(5, Math.min(100, rAvg))}%`;
+  if (gBar) gBar.style.width = `${Math.max(5, Math.min(100, gAvg))}%`;
+  if (bBar) bBar.style.width = `${Math.max(5, Math.min(100, bAvg))}%`;
+  
+  // Status text
+  if (explanationEl) {
+    const status = state.isRunning ? 'Running' : 'Paused';
+    const lastAction = state.hadronCount > state.voidCount 
+      ? 'Inversions succeeding' 
+      : 'Building void regions';
+    explanationEl.textContent = `${status} | ${lastAction}\nTick ${state.tick} | Consensus ${(state.consensusLevel * 100).toFixed(0)}%`;
   }
 }
 
@@ -598,6 +606,33 @@ async function init() {
   
   console.log('');
   console.log('Ready! Click "Single Tick" or "Run" to start.');
+  
+  // ============================================
+  // CHAT INTERFACE
+  // ============================================
+  
+  // Create chat panel dynamically
+  const chatPanel = document.createElement('div');
+  chatPanel.id = 'chat-panel';
+  chatPanel.style.cssText = `
+    position: fixed;
+    right: 20px;
+    top: 20px;
+    width: 380px;
+    height: calc(100vh - 40px);
+    z-index: 1000;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+    border-radius: 12px;
+    overflow: hidden;
+  `;
+  document.body.appendChild(chatPanel);
+  
+  // Initialize chat session
+  state.chatSession = createChatSession();
+  createChatUI(chatPanel, state.chatSession);
+  
+  console.log('');
+  console.log('Chat interface ready! Talk to the ASI in the panel on the right.');
 }
 
 // Start
