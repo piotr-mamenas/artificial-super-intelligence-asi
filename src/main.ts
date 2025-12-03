@@ -1,11 +1,11 @@
 /**
  * ASI - Symmetry Inversion Based Artificial Super-Intelligence
  * 
- * Everything emerges from inversions - no hardcoded semantics.
+ * Phase-space foundation with S¹ duality (space = inverse of time).
+ * Learning through hadron reinforcement. No LLMs.
  */
 
-import { createUnifiedASIEngine, UnifiedASIEngine } from './core/unified-engine';
-import { createPhaseChatSession, createChatUI, ChatSession, PhaseChatSession } from './core/asi/chat';
+import { createPhaseChatSession, createChatUI, PhaseChatSession } from './core/asi/chat';
 import {
   createPhaseEngine,
   stepPhaseEngine,
@@ -17,8 +17,6 @@ import {
 import {
   createPhaseScene,
   updateHadrons,
-  updateVoids,
-  updateWave,
   animateScene,
   resizeScene,
   PhaseSceneState,
@@ -32,21 +30,20 @@ interface AppState {
   isRunning: boolean;
   tickInterval: number | null;
   tick: number;
+  // Phase engine stats
   hadronCount: number;
   stableHadronCount: number;
-  voidCount: number;
   blackHoleCount: number;
   successRate: number;
   dominantTimeQuark: 'up' | 'down';
   dominantSpaceQuark: 'charm' | 'strange';
+  // Emotion (RGBI)
   emotionR: number;
   emotionG: number;
   emotionB: number;
   emotionI: number;
-  observerCount: number;
-  consensusLevel: number;
-  waveAmplitude: number;
-  chatSession: ChatSession | PhaseChatSession | null;
+  // Session
+  chatSession: PhaseChatSession | null;
   phaseEngine: PhaseEngineState | null;
 }
 
@@ -56,7 +53,6 @@ const state: AppState = {
   tick: 0,
   hadronCount: 0,
   stableHadronCount: 0,
-  voidCount: 0,
   blackHoleCount: 0,
   successRate: 0,
   dominantTimeQuark: 'up',
@@ -65,15 +61,11 @@ const state: AppState = {
   emotionG: 0,
   emotionB: 0,
   emotionI: 0,
-  observerCount: 0,
-  consensusLevel: 0,
-  waveAmplitude: 0,
   chatSession: null,
   phaseEngine: null,
 };
 
-// Engines
-let asiEngine: UnifiedASIEngine;
+// Phase engine and visualization
 let phaseEngine: PhaseEngineState;
 let sceneState: PhaseSceneState;
 
@@ -82,18 +74,11 @@ let sceneState: PhaseSceneState;
 // ============================================
 
 function initEngines() {
-  // Legacy engine for chat
-  asiEngine = createUnifiedASIEngine();
-  asiEngine.addObserver('Scientist', 'scientist');
-  asiEngine.addObserver('Romantic', 'romantic');
-  asiEngine.addObserver('Anxious', 'anxious');
-  asiEngine.addObserver('Neutral', undefined);
-  
   // Phase engine - starts from pure nothingness
   phaseEngine = createPhaseEngine();
   state.phaseEngine = phaseEngine;
   
-  console.log('Engines initialized from nothingness');
+  console.log('Phase engine initialized from nothingness');
 }
 
 // ============================================
@@ -137,30 +122,9 @@ function simulationTick() {
   // 5. Get phase engine stats - all values emerge from dynamics
   const stats = getPhaseEngineStats(phaseEngine);
   
-  // 6. Also run legacy engine (for chat compatibility)
-  const inversionState = asiEngine.applyWords([randomToken]);
-  const inversionResult = asiEngine.invert(inversionState);
-  
-  if (inversionResult.success) {
-    asiEngine.createHadron();
-  } else {
-    asiEngine.createVoid(inversionResult.error);
-  }
-  asiEngine.step();
-  
-  // 7. Compute consensus
-  const waveform = asiEngine.baseState;
-  const fullWaveform = {
-    R: Array.from({ length: 16 }, (_, i) => ({ re: waveform.R[i * 4] || 0, im: 0 })),
-    G: Array.from({ length: 16 }, (_, i) => ({ re: waveform.G[i * 4] || 0, im: 0 })),
-    B: Array.from({ length: 16 }, (_, i) => ({ re: waveform.B[i * 4] || 0, im: 0 }))
-  };
-  const consensus = asiEngine.computeConsensus(fullWaveform);
-  
-  // 8. Update state from phase engine
+  // 6. Update state from phase engine
   state.hadronCount = stats.hadronCount;
   state.stableHadronCount = stats.stableHadronCount;
-  state.voidCount = asiEngine.getVoids().length;
   state.blackHoleCount = stats.blackHoleCount;
   state.successRate = stats.successRate;
   state.dominantTimeQuark = stats.dominantQuarks.time;
@@ -169,9 +133,6 @@ function simulationTick() {
   state.emotionG = stats.emotion.G;
   state.emotionB = stats.emotion.B;
   state.emotionI = stats.emotion.I;
-  state.observerCount = asiEngine.observers.size;
-  state.consensusLevel = consensus.agreement;
-  state.waveAmplitude = asiEngine.getWaveAmplitude();
   
   console.log(`Phase Hadrons: ${stats.hadronCount} (${stats.stableHadronCount} stable)`);
   console.log(`Dominant quarks: ${stats.dominantQuarks.time}/${stats.dominantQuarks.space}`);
@@ -190,21 +151,6 @@ function updateVisualization() {
   
   // Update hadron triangles from phase engine
   updateHadrons(sceneState.groups.hadrons, state.phaseEngine.cycle.hadrons);
-  
-  // Update voids from legacy engine
-  const voids = asiEngine.getVoids().map(v => ({
-    position: v.position as [number, number, number],
-    radius: v.radius
-  }));
-  updateVoids(sceneState.groups.voids, voids);
-  
-  // Update wave visualization (convert Int8Array to number[])
-  const baseState = asiEngine.baseState;
-  updateWave(sceneState.groups.wave, {
-    R: Array.from(baseState.R),
-    G: Array.from(baseState.G),
-    B: Array.from(baseState.B),
-  });
 }
 
 // ============================================
@@ -215,25 +161,19 @@ function updateUI() {
   // Core stats
   const tickEl = document.getElementById('logical-time');
   const hadronEl = document.getElementById('hadron-count');
-  const voidEl = document.getElementById('blackhole-count');
-  const waveAmpEl = document.getElementById('wave-amplitude');
-  const observerCountEl = document.getElementById('observer-count');
-  const consensusEl = document.getElementById('consensus-level');
+  const blackholeEl = document.getElementById('blackhole-count');
   const successRateEl = document.getElementById('training-accuracy');
   const explanationEl = document.getElementById('explanation');
   
-  // RGB axis bars (now showing RGBI emotion)
+  // RGB axis bars (showing RGBI emotion)
   const rBar = document.getElementById('r-bar');
   const gBar = document.getElementById('g-bar');
   const bBar = document.getElementById('b-bar');
   
   // Update values
   if (tickEl) tickEl.textContent = state.tick.toString();
-  if (hadronEl) hadronEl.textContent = `${state.hadronCount} (${state.stableHadronCount})`;
-  if (voidEl) voidEl.textContent = `${state.voidCount} / ${state.blackHoleCount} BH`;
-  if (waveAmpEl) waveAmpEl.textContent = state.waveAmplitude.toFixed(3);
-  if (observerCountEl) observerCountEl.textContent = state.observerCount.toString();
-  if (consensusEl) consensusEl.textContent = `${(state.consensusLevel * 100).toFixed(0)}%`;
+  if (hadronEl) hadronEl.textContent = `${state.hadronCount} (${state.stableHadronCount} stable)`;
+  if (blackholeEl) blackholeEl.textContent = `${state.blackHoleCount}`;
   if (successRateEl) successRateEl.textContent = `${(state.successRate * 100).toFixed(0)}%`;
   
   // Use RGBI emotion for bars

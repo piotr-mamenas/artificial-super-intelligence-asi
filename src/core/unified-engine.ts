@@ -1,18 +1,16 @@
 /**
- * UNIFIED ASI ENGINE
+ * @deprecated LEGACY - Use phase-engine.ts instead
  * 
- * Merges:
- * - Primitive Ontology (spinning nothingness, RGB axes, double inversion)
- * - Inversion Engine (hadrons, voids, wave field)
- * - Observer Network (consensus-driven manifestation)
- * - ASI Architecture (objects, words, sentences, learning)
+ * UNIFIED ASI ENGINE (OLD RGB-BASED SYSTEM)
  * 
- * Core Principle: Understanding = Finding the Inverse
+ * This module is deprecated. The new phase-space system in
+ * src/core/asi/phase-engine.ts provides:
+ * - S¹ duality (space = inverse of time)
+ * - Hadron triangles with quark flavors
+ * - Learning through reinforcement
+ * - Token registry for retrieval
  * 
- * To understand X, find X⁻¹ such that X · X⁻¹ = Identity
- * - Successful inversion → Hadron (stable reality)
- * - Failed inversion → Void (black hole)
- * - Double inversion → True knowledge (X⁻¹⁻¹ = X)
+ * Keeping for reference only.
  */
 
 import { v4 as uuidv4 } from 'uuid';

@@ -1,12 +1,10 @@
 /**
- * PURE EMERGENT LANGUAGE MODULE
+ * @deprecated LEGACY - Use TokenRegistry in phase-engine.ts instead
  * 
- * ZERO HARDCODED VALUES.
- * Everything emerges from inversion dynamics:
- * - Words are just tokens with inversion histories
- * - Meaning emerges from inversion patterns
- * - No assumptions about positive/negative
- * - The algorithm discovers structure itself
+ * PURE EMERGENT LANGUAGE MODULE (OLD SYSTEM)
+ * 
+ * This module is deprecated. The new TokenRegistry in phase-engine.ts
+ * provides similar functionality integrated with the phase-space model.
  */
 
 // ============================================

@@ -386,6 +386,31 @@ while (running) {
 
 ---
 
+## Architecture
+
+### Active Files (Phase-Space System)
+
+| File | Purpose |
+|------|---------|
+| `src/core/asi/phase-space.ts` | S¹ duality, φ_s = -φ_t constraint |
+| `src/core/asi/phase-engine.ts` | Main engine, TokenRegistry, learning |
+| `src/core/asi/quark-flavors.ts` | Dual quark pairs (u↔c, d↔s, t↔b) |
+| `src/core/asi/hadron-triangle.ts` | Triangle geometry, stability |
+| `src/core/asi/wave-collapse.ts` | Raise/collapse cycle |
+| `src/core/asi/chat.ts` | Chat interface (PhaseChatSession) |
+| `src/viz/phase-viz.ts` | Three.js visualization |
+| `src/main.ts` | Application entry point |
+
+### Deprecated (Legacy RGB System)
+
+| File | Status |
+|------|--------|
+| `src/core/unified-engine.ts` | @deprecated - Use phase-engine.ts |
+| `src/core/asi/language.ts` | @deprecated - Use TokenRegistry |
+| `src/core/asi/primitive-ontology.ts` | Legacy reference |
+| `src/core/asi/waveform.ts` | Legacy reference |
+| `src/core/asi/objects.ts` | Legacy reference |
+
 ## Installation
 
 ```bash

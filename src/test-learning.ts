@@ -186,4 +186,35 @@ for (const query of testQueries) {
 const emptyResponse = generateFromLearned(engine, '', 5);
 console.log(`\nNo input → Most learned: "${emptyResponse}"`);
 
+// ============================================
+// EXPERIMENT 6: Simulate chat messages
+// ============================================
+console.log('\n═══════════════════════════════════════════');
+console.log('EXPERIMENT 6: Simulate chat interaction');
+console.log('═══════════════════════════════════════════\n');
+
+// Reset engine
+engine = createPhaseEngine();
+
+const chatMessages = [
+  'hello',
+  'hello world',
+  'hello world',
+  'how are you',
+  'hello',  // Should reinforce
+];
+
+for (const msg of chatMessages) {
+  const before = engine.cycle.hadrons.length;
+  const { state: newState } = processTextInput(engine, msg);
+  engine = newState;
+  engine = stepPhaseEngine(engine);
+  const after = engine.cycle.hadrons.length;
+  
+  const response = generateFromLearned(engine, msg, 8);
+  console.log(`User: "${msg}"`);
+  console.log(`ASI: ${response} [H:${after} +${after-before}]`);
+  console.log('');
+}
+
 console.log('\n═══ LEARNING TEST COMPLETE ═══');

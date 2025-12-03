@@ -1,10 +1,10 @@
 /**
  * CHAT MODULE - Interactive communication with the ASI
  * 
- * NOW USING PHASE ENGINE:
- * - Learning through hadron reinforcement
- * - Response generation from learned patterns
- * - Token registry for retrieval
+ * Phase Engine Learning:
+ * - Tokens → phase positions → hadrons
+ * - Reinforcement through repetition
+ * - Response from resonant patterns
  */
 
 import {
@@ -17,16 +17,6 @@ import {
   getVocabularyStats as getPhaseVocabStats,
   PhaseEngineState,
 } from './phase-engine';
-
-// Legacy imports for backwards compatibility
-import { createUnifiedASIEngine, UnifiedASIEngine } from '../unified-engine';
-import { 
-  processInput, 
-  updateFromInversion, 
-  generateResponse, 
-  analyzeSentiment,
-  getVocabularyStats
-} from './language';
 
 // Chat message type
 export interface ChatMessage {
@@ -51,114 +41,8 @@ export interface PhaseChatSession {
   getLearnedPatterns(): { tokens: string[]; persistence: number }[];
 }
 
-// Legacy chat session (backwards compatible)
-export interface ChatSession {
-  messages: ChatMessage[];
-  engine: UnifiedASIEngine;
-  
-  send(message: string): ChatMessage;
-  getHistory(): ChatMessage[];
-  clear(): void;
-}
-
-// Create a chat session
-export function createChatSession(): ChatSession {
-  const engine = createUnifiedASIEngine();
-  const messages: ChatMessage[] = [];
-  
-  // Add observers for chat
-  engine.addObserver('Empathetic', 'romantic');
-  engine.addObserver('Analytical', 'scientist');
-  engine.addObserver('Balanced', 'neutral');
-  
-  // Initial greeting - ASI starts with empty vocabulary
-  const greeting: ChatMessage = {
-    id: generateId(),
-    role: 'asi',
-    content: '[Initializing... Vocabulary empty. Teach me by chatting. I learn through inversions.]',
-    timestamp: new Date(),
-    waveAmplitude: engine.getWaveAmplitude(),
-    hadronCount: engine.getHadrons().length,
-    voidCount: engine.getVoids().length,
-  };
-  messages.push(greeting);
-  
-  function send(userMessage: string): ChatMessage {
-    // Create user message with sentiment from learned vocabulary
-    const userMsg: ChatMessage = {
-      id: generateId(),
-      role: 'user',
-      content: userMessage,
-      timestamp: new Date(),
-      sentiment: analyzeSentiment(userMessage),
-    };
-    messages.push(userMsg);
-    
-    // Process input - learn new words, track sequences
-    const words = userMessage.toLowerCase().split(/\s+/).filter(w => w.length > 0);
-    processInput(userMessage);
-    
-    // Apply to engine and attempt inversion
-    const state = engine.applyWords(words);
-    const result = engine.invert(state);
-    
-    // Record raw inversion error - no interpretation
-    updateFromInversion(words, result.success, result.error);
-    
-    if (result.success) {
-      engine.createHadron();
-    } else {
-      engine.createVoid(result.error);
-    }
-    
-    engine.step();
-    
-    // Generate response from emergent patterns
-    const response = generateResponse(
-      words,
-      { R: 0, G: 0, B: 0 },  // Not used - emergent system ignores this
-      engine.getHadrons().length,
-      engine.getVoids().length
-    );
-    
-    const stats = getVocabularyStats();
-    const sentiment = analyzeSentiment(userMessage);
-    
-    const asiMsg: ChatMessage = {
-      id: generateId(),
-      role: 'asi',
-      content: response + ` [Vocab: ${stats.size} | +${stats.positiveWords}/-${stats.negativeWords}]`,
-      timestamp: new Date(),
-      sentiment,
-      waveAmplitude: engine.getWaveAmplitude(),
-      hadronCount: engine.getHadrons().length,
-      voidCount: engine.getVoids().length,
-    };
-    messages.push(asiMsg);
-    
-    return asiMsg;
-  }
-  
-  function getHistory(): ChatMessage[] {
-    return [...messages];
-  }
-  
-  function clear(): void {
-    messages.length = 0;
-    messages.push(greeting);
-  }
-  
-  return {
-    messages,
-    engine,
-    send,
-    getHistory,
-    clear,
-  };
-}
-
 // ============================================
-// NEW PHASE-BASED CHAT SESSION
+// PHASE-BASED CHAT SESSION
 // ============================================
 
 /**
@@ -274,8 +158,8 @@ function generateId(): string {
   return Math.random().toString(36).substring(2, 9);
 }
 
-// Create chat UI elements (works with both legacy and phase chat sessions)
-export function createChatUI(container: HTMLElement, session: ChatSession | PhaseChatSession): {
+// Create chat UI elements
+export function createChatUI(container: HTMLElement, session: PhaseChatSession): {
   addMessage: (msg: ChatMessage) => void;
   scrollToBottom: () => void;
 } {
@@ -424,7 +308,6 @@ export function createChatUI(container: HTMLElement, session: ChatSession | Phas
       role: 'user',
       content: text,
       timestamp: new Date(),
-      sentiment: analyzeSentiment(text),
     };
     addMessage(userMsg);
     input.value = '';
@@ -462,5 +345,3 @@ export function createChatUI(container: HTMLElement, session: ChatSession | Phas
   
   return { addMessage, scrollToBottom };
 }
-
-export { generateResponse, analyzeSentiment };
