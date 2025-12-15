@@ -11,6 +11,7 @@ import { EmergentEmotionField, computeStateSignature } from '../cognitive/emerge
 import { EmergentConnectorField } from '../cognitive/emergentConnector.js';
 import { Lexicon } from '../language/lexicon.js';
 import { SymmetryQueryEngine } from '../language/symmetryQuery.js';
+import { detectUncertainty, waveformToSpinPattern } from '../math/quarkSpins.js';
 import { MultiChannelWaveform, CHANNELS } from '../math/channels.js';
 import { Waveform, cAbsSq } from '../math/waveforms.js';
 
@@ -188,7 +189,129 @@ export class Agent {
    * @returns {object} Processing result with lexemes and transformation
    */
   processLanguage(text) {
-    return this.lexicon.processInput(text, this);
+    // Apply gates to evolve waveform before processing
+    this.step();
+    
+    // Process through lexicon
+    const occurrences = this.lexicon.processInput(text, this);
+    
+    // Apply gates again after processing
+    this.step();
+    
+    return occurrences;
+  }
+
+  /**
+   * Reason about a concept using the graph memory.
+   * Returns related concepts and their connections.
+   * @param {string} concept
+   * @returns {object}
+   */
+  reasonAbout(concept) {
+    const result = {
+      concept,
+      found: false,
+      related: [],
+      paths: [],
+      context: []
+    };
+    
+    // Find occurrences matching this concept
+    const lowerConcept = concept.toLowerCase();
+    const occurrences = this.graph.getAllOccurrences().filter(o => {
+      let payloadStr = '';
+      if (typeof o.payload === 'string') {
+        payloadStr = o.payload;
+      } else if (o.payload) {
+        payloadStr = o.payload.concept || o.payload.signal || '';
+      }
+      return payloadStr.toLowerCase() === lowerConcept;
+    });
+    
+    if (occurrences.length === 0) {
+      return result;
+    }
+    
+    result.found = true;
+    
+    // Get all related concepts through relations
+    for (const occ of occurrences) {
+      // Outgoing relations
+      const outgoing = this.graph.getOutgoing(occ.id);
+      for (const rel of outgoing) {
+        const targetOcc = this.graph.getOccurrence(rel.to);
+        if (targetOcc) {
+          const targetConcept = targetOcc.payload?.concept || targetOcc.payload?.signal || rel.to;
+          result.related.push({
+            concept: targetConcept,
+            direction: 'to',
+            connector: rel.metadata?.connector || 'relates',
+            operators: rel.metadata?.operators || []
+          });
+        }
+      }
+      
+      // Incoming relations
+      const incoming = this.graph.getIncoming(occ.id);
+      for (const rel of incoming) {
+        const sourceOcc = this.graph.getOccurrence(rel.from);
+        if (sourceOcc) {
+          const sourceConcept = sourceOcc.payload?.concept || sourceOcc.payload?.signal || rel.from;
+          result.related.push({
+            concept: sourceConcept,
+            direction: 'from',
+            connector: rel.metadata?.connector || 'relates',
+            operators: rel.metadata?.operators || []
+          });
+        }
+      }
+    }
+    
+    // Get symmetry paths if available
+    if (this.symmetryQuery) {
+      const walkback = this.symmetryQuery.walkBack(concept);
+      if (walkback.canReproduce) {
+        result.paths = walkback.chain;
+      }
+    }
+    
+    return result;
+  }
+
+  /**
+   * Get context from surrounding knowledge.
+   * Activates related concepts in waveform.
+   * @param {string[]} concepts
+   */
+  activateContext(concepts) {
+    const waveform = this.attentionState?.waveform;
+    if (!waveform) return;
+    
+    for (const concept of concepts) {
+      const reasoning = this.reasonAbout(concept);
+      
+      if (reasoning.found) {
+        // Boost waveform based on related concepts
+        for (const rel of reasoning.related) {
+          // Activate the channel based on the connector type
+          const ops = rel.operators || [];
+          for (const op of ops) {
+            const channel = waveform.getChannel(op[0]); // 'u' for 'up', etc
+            if (channel) {
+              // Add amplitude for this concept
+              const id = `concept:${rel.concept}`;
+              const existing = channel.get(id) || { re: 0, im: 0 };
+              channel.set(id, {
+                re: existing.re + 0.1,
+                im: existing.im + 0.05
+              });
+            }
+          }
+        }
+      }
+    }
+    
+    waveform.normalizeAll();
   }
 
   /**
@@ -291,6 +414,82 @@ export class Agent {
    */
   getSymmetryStats() {
     return this.symmetryQuery.getStatistics();
+  }
+
+  /**
+   * Detect uncertainty from current waveform state.
+   * High uncertainty = ASI doesn't know / can't answer confidently.
+   * @returns {object}
+   */
+  detectUncertainty() {
+    return detectUncertainty(this.attentionState?.waveform);
+  }
+
+  /**
+   * Get current spin pattern from waveform.
+   * @returns {object}
+   */
+  getSpinPattern() {
+    const pattern = waveformToSpinPattern(this.attentionState?.waveform);
+    return pattern.toJSON();
+  }
+
+  /**
+   * Check if agent knows about a concept (has it in graph with low uncertainty).
+   * @param {string} concept
+   * @returns {{ knows: boolean, confidence: number, reason: string }}
+   */
+  knowsAbout(concept) {
+    const lowerConcept = concept.toLowerCase();
+    const occurrences = this.graph.getAllOccurrences()
+      .filter(o => {
+        // Handle various payload formats
+        let payloadStr = '';
+        if (typeof o.payload === 'string') {
+          payloadStr = o.payload;
+        } else if (o.payload) {
+          payloadStr = o.payload.concept || o.payload.signal || o.payload.text || '';
+        }
+        return payloadStr.toLowerCase() === lowerConcept;
+      });
+    
+    if (occurrences.length === 0) {
+      return { 
+        knows: false, 
+        confidence: 0, 
+        reason: 'never encountered' 
+      };
+    }
+    
+    // Check relations
+    const relations = [];
+    for (const occ of occurrences) {
+      const outgoing = this.graph.getOutgoing(occ.id);
+      const incoming = this.graph.getIncoming(occ.id);
+      relations.push(...outgoing, ...incoming);
+    }
+    
+    if (relations.length === 0) {
+      return { 
+        knows: false, 
+        confidence: 0.2, 
+        reason: 'encountered but no relations' 
+      };
+    }
+    
+    // Check waveform uncertainty
+    const uncertainty = this.detectUncertainty();
+    
+    // High confidence if we have relations AND low uncertainty
+    const relationConfidence = Math.min(1, relations.length / 3);
+    const waveformConfidence = 1 - uncertainty.uncertainty;
+    const confidence = (relationConfidence + waveformConfidence) / 2;
+    
+    return {
+      knows: confidence > 0.4,
+      confidence,
+      reason: confidence > 0.4 ? 'has relations and stable waveform' : 'uncertain'
+    };
   }
 
   /**

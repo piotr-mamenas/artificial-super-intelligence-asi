@@ -1,198 +1,416 @@
 // Cognitive: Emergent Connector System
-// No hardcoded relation types - connectors are learned patterns
+// Connectors are spin patterns - combinations of half-spin quark states
+
+import { CHANNELS } from '../math/channels.js';
+import { 
+  QuarkSpinPattern, 
+  SPIN_UP, 
+  SPIN_DOWN, 
+  SPIN_ZERO,
+  CONNECTOR_SPIN_PATTERNS 
+} from '../math/quarkSpins.js';
 
 // ============================================================
-// ConnectorSignature - Captures context of a connection
+// Quark Operator Patterns for Connectors
+// The connector IS the operator transformation, not a label
 // ============================================================
 
 /**
- * Compute a connector signature from the context of two concepts being linked.
- * This captures the "shape" of how two things are being related.
- * @param {object} context
- * @param {string} context.fromConcept
- * @param {string} context.toConcept
- * @param {string} context.sentence - Original sentence
- * @param {string[]} context.surroundingWords - Words around the connector
- * @param {object} agent - The agent (for state context)
- * @returns {number[]}
+ * QUARK_CONNECTOR_PATTERNS: Each connector type is defined by its
+ * operator signature - the transformation it applies.
+ * 
+ * These are NOT hardcoded labels - they emerge from the operator weights.
+ * The names are just for human readability.
  */
-export function computeConnectorSignature(context, agent) {
-  const signature = [];
+export const OPERATOR_ROLES = {
+  up: 'assertion',      // Affirms existence/property
+  down: 'negation',     // Denies/excludes
+  strange: 'context',   // Shifts interpretation frame
+  charm: 'abstraction', // Generalizes/categorizes
+  top: 'structure',     // Grammatical/logical constraint
+  bottom: 'grounding'   // Anchors to concrete experience
+};
+
+// ============================================================
+// ConnectorPattern - The operator transformation of a connector
+// ============================================================
+
+/**
+ * ConnectorPattern: represents a connector as a spin pattern.
+ * Connectors are combinations of half-spin quark states, not weights.
+ */
+export class ConnectorPattern {
+  constructor() {
+    // Spin pattern (6 channels, each +1/2, -1/2, or 0)
+    this.spinPattern = new QuarkSpinPattern();
+    
+    // Direction: does this connector go from specific→general or general→specific?
+    this.direction = 0; // -1 = generalizing, 0 = neutral, 1 = specifying
+    
+    // Symmetry: is the relation symmetric (A~B means B~A)?
+    this.symmetry = 0; // 0 = asymmetric, 1 = symmetric
+    
+    // Examples of usage
+    this.examples = [];
+    this.count = 0;
+    
+    // Legacy: operator weights for compatibility
+    this.operatorWeights = { up: 0, down: 0, strange: 0, charm: 0, top: 0, bottom: 0 };
+  }
+
+  /**
+   * Update pattern from a transformation context.
+   */
+  updateFromContext(context) {
+    this.count++;
+    
+    // Get the spin pattern for this transformation type
+    const inferredSpins = this._inferSpinPattern(context);
+    
+    // Update our spin pattern (collapse towards the inferred pattern)
+    if (this.count === 1) {
+      // First update - just copy
+      this.spinPattern = inferredSpins.clone();
+    } else {
+      // Subsequent updates - collapse superpositions towards new pattern
+      this.spinPattern.collapseTowards(inferredSpins);
+    }
+    
+    // Update legacy weights from spins
+    this._updateWeightsFromSpins();
+    
+    // Update direction
+    const alpha = 1 / this.count;
+    this.direction = this.direction * (1 - alpha) + context.direction * alpha;
+    
+    // Update symmetry
+    this.symmetry = this.symmetry * (1 - alpha) + context.symmetry * alpha;
+    
+    // Store example
+    if (context.sentence && this.examples.length < 5) {
+      this.examples.push(context.sentence);
+    }
+  }
+
+  /**
+   * Infer spin pattern from transformation context.
+   */
+  _inferSpinPattern(context) {
+    const transformType = context.transformType || 'assertion';
+    
+    // Use predefined spin patterns if available
+    if (CONNECTOR_SPIN_PATTERNS[transformType]) {
+      return CONNECTOR_SPIN_PATTERNS[transformType].clone();
+    }
+    
+    // Otherwise create from transformation type
+    const pattern = new QuarkSpinPattern();
+    
+    switch (transformType) {
+      case 'is-a':
+      case 'subsumption':
+        // Assertion (u+) + Abstraction (c+)
+        pattern.setSpin('u', SPIN_UP);
+        pattern.setSpin('c', SPIN_UP);
+        break;
+        
+      case 'has-a':
+      case 'possession':
+        // Assertion (u+) + Grounding (b+)
+        pattern.setSpin('u', SPIN_UP);
+        pattern.setSpin('b', SPIN_UP);
+        break;
+        
+      case 'means':
+      case 'definition':
+        // Abstraction (c+) + Context (s+)
+        pattern.setSpin('c', SPIN_UP);
+        pattern.setSpin('s', SPIN_UP);
+        break;
+        
+      case 'causes':
+      case 'causation':
+        // Structure (t+) + Grounding (b+) + Assertion (u+)
+        pattern.setSpin('u', SPIN_UP);
+        pattern.setSpin('t', SPIN_UP);
+        pattern.setSpin('b', SPIN_UP);
+        break;
+        
+      case 'negation':
+      case 'not':
+        // Negation (d+) + Anti-assertion (u-)
+        pattern.setSpin('u', SPIN_DOWN);
+        pattern.setSpin('d', SPIN_UP);
+        break;
+        
+      case 'similarity':
+      case 'like':
+        // Context (s+) + Abstraction (c+)
+        pattern.setSpin('s', SPIN_UP);
+        pattern.setSpin('c', SPIN_UP);
+        break;
+        
+      case 'part-of':
+      case 'composition':
+        // Grounding (b+) + Structure (t+)
+        pattern.setSpin('t', SPIN_UP);
+        pattern.setSpin('b', SPIN_UP);
+        break;
+        
+      default:
+        // Default: assertion with context
+        pattern.setSpin('u', SPIN_UP);
+        pattern.setSpin('s', SPIN_UP);
+    }
+    
+    return pattern;
+  }
+
+  /**
+   * Update legacy weights from spin pattern.
+   */
+  _updateWeightsFromSpins() {
+    const mapping = { u: 'up', d: 'down', s: 'strange', c: 'charm', t: 'top', b: 'bottom' };
+    
+    for (const [channel, opName] of Object.entries(mapping)) {
+      const spin = this.spinPattern.getSpin(channel);
+      // Convert spin to weight: +0.5 -> 1.0, -0.5 -> 0.0, 0 -> 0.5
+      this.operatorWeights[opName] = spin + 0.5;
+    }
+  }
+
+  /**
+   * Get the dominant operator (what this connector primarily does).
+   */
+  getDominantOperator() {
+    const mapping = ['u', 'd', 's', 'c', 't', 'b'];
+    const names = ['up', 'down', 'strange', 'charm', 'top', 'bottom'];
+    
+    let maxSpin = -1;
+    let dominant = 'up';
+    
+    for (let i = 0; i < mapping.length; i++) {
+      const spin = this.spinPattern.getSpin(mapping[i]);
+      if (spin > maxSpin) {
+        maxSpin = spin;
+        dominant = names[i];
+      }
+    }
+    
+    return dominant;
+  }
+
+  /**
+   * Get the semantic role of this connector.
+   */
+  getSemanticRole() {
+    const dominant = this.getDominantOperator();
+    return OPERATOR_ROLES[dominant];
+  }
+
+  /**
+   * Compute similarity to another pattern using spin alignment.
+   */
+  similarity(other) {
+    return this.spinPattern.similarity(other.spinPattern);
+  }
+
+  /**
+   * Get as operator sequence for symmetry recording.
+   * Returns channels with spin-up as the active operators.
+   */
+  toOperatorSequence() {
+    const mapping = { u: 'up', d: 'down', s: 'strange', c: 'charm', t: 'top', b: 'bottom' };
+    const sequence = [];
+    
+    for (const [channel, opName] of Object.entries(mapping)) {
+      if (this.spinPattern.spins[channel].isUp()) {
+        sequence.push(opName);
+      }
+    }
+    
+    return sequence.length > 0 ? sequence : ['up'];
+  }
+
+  /**
+   * Get spin pattern string for display.
+   */
+  getSpinString() {
+    return this.spinPattern.getPatternString();
+  }
+
+  toJSON() {
+    return {
+      spinPattern: this.spinPattern.toJSON(),
+      spinString: this.getSpinString(),
+      operatorWeights: { ...this.operatorWeights },
+      dominant: this.getDominantOperator(),
+      role: this.getSemanticRole(),
+      direction: this.direction,
+      symmetry: this.symmetry,
+      count: this.count,
+      examples: this.examples
+    };
+  }
+}
+
+// ============================================================
+// Infer transformation type from sentence
+// ============================================================
+
+/**
+ * Infer the transformation type from a sentence.
+ * Returns context for building the connector pattern.
+ */
+export function inferTransformationType(sentence, fromConcept, toConcept) {
+  const lower = sentence.toLowerCase();
+  const words = extractWordsBetween(lower, fromConcept.toLowerCase(), toConcept.toLowerCase());
   
-  // 1. Syntactic position features (4 values)
-  const sentence = context.sentence.toLowerCase();
-  const fromPos = sentence.indexOf(context.fromConcept.toLowerCase());
-  const toPos = sentence.indexOf(context.toConcept.toLowerCase());
-  const sentenceLen = sentence.length;
+  // Default context
+  const context = {
+    sentence,
+    fromConcept,
+    toConcept,
+    transformType: 'assertion',
+    direction: 0,  // -1 = generalizing, 1 = specifying
+    symmetry: 0    // 0 = asymmetric, 1 = symmetric
+  };
   
-  signature.push(
-    fromPos >= 0 ? fromPos / sentenceLen : 0.5,  // Relative position of from
-    toPos >= 0 ? toPos / sentenceLen : 0.5,      // Relative position of to
-    fromPos < toPos ? 1 : 0,                      // Order: from before to?
-    Math.abs(toPos - fromPos) / sentenceLen       // Distance between concepts
-  );
-  
-  // 2. Connector word features (6 values) - what words appear between/around
-  const connectorWords = extractConnectorWords(sentence, context.fromConcept, context.toConcept);
-  signature.push(
-    connectorWords.includes('is') || connectorWords.includes('are') ? 1 : 0,
-    connectorWords.includes('has') || connectorWords.includes('have') ? 1 : 0,
-    connectorWords.includes('means') || connectorWords.includes('represents') ? 1 : 0,
-    connectorWords.includes('causes') || connectorWords.includes('makes') ? 1 : 0,
-    connectorWords.includes('like') || connectorWords.includes('similar') ? 1 : 0,
-    connectorWords.includes('not') || connectorWords.includes('opposite') ? 1 : 0
-  );
-  
-  // 3. Concept features (4 values)
-  const fromLen = context.fromConcept.length;
-  const toLen = context.toConcept.length;
-  signature.push(
-    Math.min(1, fromLen / 20),                    // Normalized from length
-    Math.min(1, toLen / 20),                      // Normalized to length
-    fromLen > toLen ? 1 : 0,                      // From longer than to?
-    context.fromConcept[0] === context.toConcept[0] ? 1 : 0  // Same first letter?
-  );
-  
-  // 4. Agent state context (2 values)
-  if (agent) {
-    const graphSize = agent.graph.getAllOccurrences().length;
-    const relationCount = agent.graph.getAllRelations().length;
-    signature.push(
-      Math.min(1, graphSize / 100),
-      Math.min(1, relationCount / 100)
-    );
-  } else {
-    signature.push(0.5, 0.5);
+  // Infer transformation type from connector words
+  if (words.some(w => ['is', 'are', 'be'].includes(w))) {
+    if (words.some(w => ['a', 'an'].includes(w))) {
+      context.transformType = 'is-a';
+      context.direction = -1; // Generalizing (cat → animal)
+    } else if (words.includes('not')) {
+      context.transformType = 'negation';
+      context.direction = 0;
+    } else if (words.some(w => ['like', 'similar'].includes(w))) {
+      context.transformType = 'similarity';
+      context.symmetry = 1; // Symmetric
+    } else {
+      context.transformType = 'is-a';
+      context.direction = -1;
+    }
+  } else if (words.some(w => ['has', 'have', 'contains', 'includes'].includes(w))) {
+    context.transformType = 'has-a';
+    context.direction = 1; // Specifying (cat has tail)
+  } else if (words.some(w => ['means', 'represents', 'defines'].includes(w))) {
+    context.transformType = 'means';
+    context.direction = 0;
+  } else if (words.some(w => ['causes', 'makes', 'creates', 'produces'].includes(w))) {
+    context.transformType = 'causes';
+    context.direction = 1;
+  } else if (words.some(w => ['part', 'member', 'belongs'].includes(w))) {
+    context.transformType = 'part-of';
+    context.direction = 1;
+  } else if (words.some(w => ['relates', 'connects', 'associated'].includes(w))) {
+    context.transformType = 'assertion';
+    context.symmetry = 0.5; // Partially symmetric
   }
   
-  // Total: 4 + 6 + 4 + 2 = 16 dimensions
-  return signature;
+  return context;
 }
 
 /**
- * Extract words between two concepts in a sentence.
+ * Extract words between two concepts.
  */
-function extractConnectorWords(sentence, from, to) {
-  const lowerSentence = sentence.toLowerCase();
-  const fromIdx = lowerSentence.indexOf(from.toLowerCase());
-  const toIdx = lowerSentence.indexOf(to.toLowerCase());
+function extractWordsBetween(sentence, from, to) {
+  const fromIdx = sentence.indexOf(from);
+  const toIdx = sentence.indexOf(to);
   
   if (fromIdx < 0 || toIdx < 0) return [];
   
-  const start = Math.min(fromIdx + from.length, toIdx + to.length);
-  const end = Math.max(fromIdx, toIdx);
+  let between;
+  if (fromIdx < toIdx) {
+    between = sentence.slice(fromIdx + from.length, toIdx);
+  } else {
+    between = sentence.slice(toIdx + to.length, fromIdx);
+  }
   
-  if (start >= end) return [];
-  
-  const between = lowerSentence.slice(start, end);
-  return between.split(/\s+/).filter(w => w.length > 0);
+  return between.trim().split(/\s+/).filter(w => w.length > 0);
 }
 
 // ============================================================
-// EmergentConnectorField - Learns connector types from usage
+// EmergentConnectorField - Learns connector types as operator patterns
 // ============================================================
 
 /**
- * EmergentConnectorField: connector types are learned patterns, not hardcoded.
+ * EmergentConnectorField: connectors are operator transformation patterns.
+ * Similar transformations cluster into the same connector type.
  */
 export class EmergentConnectorField {
   constructor() {
-    /** @type {Map<string, { signature: number[], count: number, examples: string[] }>} */
+    /** @type {Map<string, ConnectorPattern>} label -> pattern */
     this.learnedConnectors = new Map();
     
-    this.similarityThreshold = 0.6;
-    this.maxExamples = 5; // Store example sentences per connector type
+    this.similarityThreshold = 0.7;
   }
 
   /**
-   * Learn a connector type from context.
-   * @param {string} label - User-provided or inferred connector word
-   * @param {number[]} signature - Context signature
-   * @param {string} [example] - Example sentence
+   * Learn a connector from a transformation context.
+   * @param {string} sentence - The original sentence
+   * @param {string} fromConcept
+   * @param {string} toConcept
+   * @returns {{ label: string, pattern: ConnectorPattern, isNew: boolean }}
    */
-  learn(label, signature, example = null) {
-    const normalizedLabel = label.toLowerCase().trim();
+  learnFromSentence(sentence, fromConcept, toConcept) {
+    // Infer the transformation type from the sentence
+    const context = inferTransformationType(sentence, fromConcept, toConcept);
     
-    if (this.learnedConnectors.has(normalizedLabel)) {
-      const existing = this.learnedConnectors.get(normalizedLabel);
-      const alpha = 1 / (existing.count + 1);
-      
-      existing.signature = existing.signature.map((v, i) => 
-        v * (1 - alpha) + signature[i] * alpha
-      );
-      existing.count++;
-      
-      if (example && existing.examples.length < this.maxExamples) {
-        existing.examples.push(example);
-      }
-    } else {
-      this.learnedConnectors.set(normalizedLabel, {
-        signature: [...signature],
-        count: 1,
-        examples: example ? [example] : []
-      });
-    }
+    // Find or create a matching connector pattern
+    const result = this._findOrCreateConnector(context);
+    
+    // Update the pattern with this example
+    result.pattern.updateFromContext(context);
+    
+    return result;
   }
 
   /**
-   * Infer connector type from context signature.
-   * Returns closest learned pattern or generates a new one.
-   * @param {number[]} signature
-   * @param {string} [fallbackWord] - Word to use if no match found
-   * @returns {{ label: string, similarity: number, isNew: boolean }}
+   * Find existing connector or create new one based on transformation type.
    */
-  infer(signature, fallbackWord = null) {
-    if (this.learnedConnectors.size === 0) {
-      // No learned connectors yet - use fallback or generate
-      const label = fallbackWord || this._generateConnectorId();
-      return { label, similarity: 0, isNew: true };
+  _findOrCreateConnector(context) {
+    const transformType = context.transformType;
+    
+    // First, check if we have a connector for this transform type
+    if (this.learnedConnectors.has(transformType)) {
+      return {
+        label: transformType,
+        pattern: this.learnedConnectors.get(transformType),
+        isNew: false
+      };
     }
     
-    let bestMatch = null;
-    let bestSimilarity = -1;
+    // Check if any existing connector has similar operator weights
+    const tempPattern = new ConnectorPattern();
+    tempPattern.updateFromContext(context);
     
-    for (const [label, pattern] of this.learnedConnectors) {
-      const similarity = this._cosineSimilarity(signature, pattern.signature);
-      if (similarity > bestSimilarity) {
-        bestSimilarity = similarity;
-        bestMatch = label;
+    for (const [label, existingPattern] of this.learnedConnectors) {
+      if (tempPattern.similarity(existingPattern) >= this.similarityThreshold) {
+        return {
+          label,
+          pattern: existingPattern,
+          isNew: false
+        };
       }
     }
     
-    if (bestSimilarity >= this.similarityThreshold) {
-      return { label: bestMatch, similarity: bestSimilarity, isNew: false };
-    }
+    // Create new connector
+    const newPattern = new ConnectorPattern();
+    this.learnedConnectors.set(transformType, newPattern);
     
-    // Below threshold - this is a new connector type
-    const label = fallbackWord || this._generateConnectorId();
-    return { label, similarity: bestSimilarity, isNew: true };
+    return {
+      label: transformType,
+      pattern: newPattern,
+      isNew: true
+    };
   }
 
   /**
-   * Generate a unique connector ID for novel connection types.
+   * Get connector pattern by label.
    */
-  _generateConnectorId() {
-    return `link_${this.learnedConnectors.size + 1}`;
-  }
-
-  /**
-   * Compute cosine similarity between two vectors.
-   */
-  _cosineSimilarity(a, b) {
-    if (a.length !== b.length) return 0;
-    
-    let dotProduct = 0;
-    let normA = 0;
-    let normB = 0;
-    
-    for (let i = 0; i < a.length; i++) {
-      dotProduct += a[i] * b[i];
-      normA += a[i] * a[i];
-      normB += b[i] * b[i];
-    }
-    
-    const denom = Math.sqrt(normA) * Math.sqrt(normB);
-    return denom > 0 ? dotProduct / denom : 0;
+  getConnector(label) {
+    return this.learnedConnectors.get(label.toLowerCase());
   }
 
   /**
@@ -209,8 +427,40 @@ export class EmergentConnectorField {
    * @returns {string[]}
    */
   getExamples(label) {
-    const connector = this.learnedConnectors.get(label.toLowerCase());
-    return connector ? connector.examples : [];
+    const pattern = this.learnedConnectors.get(label.toLowerCase());
+    return pattern ? pattern.examples : [];
+  }
+
+  /**
+   * Get the operator sequence for a connector (for symmetry recording).
+   * @param {string} label
+   * @returns {string[]}
+   */
+  getOperatorSequence(label) {
+    const pattern = this.learnedConnectors.get(label.toLowerCase());
+    return pattern ? pattern.toOperatorSequence() : ['up'];
+  }
+
+  /**
+   * Find connectors similar to a given operator pattern.
+   * @param {object} operatorWeights
+   * @returns {Array<{label: string, similarity: number}>}
+   */
+  findSimilar(operatorWeights) {
+    const results = [];
+    
+    const queryPattern = new ConnectorPattern();
+    queryPattern.operatorWeights = { ...operatorWeights };
+    
+    for (const [label, pattern] of this.learnedConnectors) {
+      const sim = queryPattern.similarity(pattern);
+      if (sim > 0.3) {
+        results.push({ label, similarity: sim, pattern: pattern.toJSON() });
+      }
+    }
+    
+    results.sort((a, b) => b.similarity - a.similarity);
+    return results;
   }
 
   /**
@@ -226,11 +476,8 @@ export class EmergentConnectorField {
    */
   toJSON() {
     const connectors = {};
-    for (const [label, data] of this.learnedConnectors) {
-      connectors[label] = {
-        count: data.count,
-        examples: data.examples
-      };
+    for (const [label, pattern] of this.learnedConnectors) {
+      connectors[label] = pattern.toJSON();
     }
     
     return {
@@ -242,47 +489,31 @@ export class EmergentConnectorField {
 }
 
 // ============================================================
-// Helper: Extract connector word from sentence
+// Legacy compatibility exports
 // ============================================================
 
 /**
- * Try to extract the connector word between two concepts.
- * @param {string} sentence
- * @param {string} from
- * @param {string} to
- * @returns {string|null}
+ * Compute connector signature (legacy - now uses operator patterns).
+ * @deprecated Use learnFromSentence instead
+ */
+export function computeConnectorSignature(context, agent) {
+  const transformContext = inferTransformationType(
+    context.sentence, 
+    context.fromConcept, 
+    context.toConcept
+  );
+  
+  const pattern = new ConnectorPattern();
+  pattern.updateFromContext(transformContext);
+  
+  // Return operator weights as array for compatibility
+  return Object.values(pattern.operatorWeights);
+}
+
+/**
+ * Extract connector word from sentence.
  */
 export function extractConnectorWord(sentence, from, to) {
-  const lowerSentence = sentence.toLowerCase();
-  const lowerFrom = from.toLowerCase();
-  const lowerTo = to.toLowerCase();
-  
-  const fromIdx = lowerSentence.indexOf(lowerFrom);
-  const toIdx = lowerSentence.indexOf(lowerTo);
-  
-  if (fromIdx < 0 || toIdx < 0) return null;
-  
-  // Get the part between the concepts
-  let between;
-  if (fromIdx < toIdx) {
-    between = lowerSentence.slice(fromIdx + lowerFrom.length, toIdx);
-  } else {
-    between = lowerSentence.slice(toIdx + lowerTo.length, fromIdx);
-  }
-  
-  // Extract meaningful connector words
-  const words = between.trim().split(/\s+/).filter(w => w.length > 1);
-  
-  // Prefer certain connector words
-  const preferredConnectors = ['is', 'are', 'has', 'have', 'means', 'causes', 
-    'makes', 'creates', 'contains', 'includes', 'relates', 'connects', 'like'];
-  
-  for (const word of words) {
-    if (preferredConnectors.includes(word)) {
-      return word;
-    }
-  }
-  
-  // Return first meaningful word if any
-  return words.length > 0 ? words[0] : null;
+  const context = inferTransformationType(sentence, from, to);
+  return context.transformType;
 }

@@ -2,7 +2,7 @@
 
 import { Occurrence } from '../core/occurrences.js';
 import { detectEmotionTeaching, emotionDetector } from '../cognitive/emergentEmotion.js';
-import { computeConnectorSignature, extractConnectorWord } from '../cognitive/emergentConnector.js';
+import { inferTransformationType } from '../cognitive/emergentConnector.js';
 import { segmentIntoForms } from '../language/linguisticOccurrence.js';
 
 // ============================================================
@@ -386,11 +386,68 @@ export class ChatInterface {
       return this._handleExplicitLearn(text, concepts);
     }
     
+    // Check if this is a question BEFORE processing
+    if (lowerText.includes('what is ') || lowerText.includes('who is ') || 
+        lowerText.includes('what are ') || lowerText.endsWith('?')) {
+      return this._handleQuestion(text, concepts);
+    }
+    
     // Process all text through language system (builds lexicon)
     this.agent.processLanguage(text);
     
     // Default: acknowledge and create occurrence
     return this._handleGeneral(text, concepts);
+  }
+
+  /**
+   * Handle questions - use memory and reasoning to answer.
+   */
+  _handleQuestion(text, concepts) {
+    // Check what concept we're being asked about
+    const askedConcept = concepts.length > 0 ? concepts[concepts.length - 1] : null;
+    
+    if (!askedConcept) {
+      return "What would you like to know about?";
+    }
+    
+    // Activate context from memory for all concepts mentioned
+    this.agent.activateContext(concepts);
+    
+    // Use reasoning system to find what we know
+    const reasoning = this.agent.reasonAbout(askedConcept);
+    
+    if (!reasoning.found) {
+      return `I don't know about "${askedConcept}" yet.\n` +
+             `Teach me by saying "${askedConcept} is..." or "${askedConcept} means..."`;
+    }
+    
+    // Build response from memory
+    const lines = [`About "${askedConcept}":`];
+    
+    if (reasoning.related.length > 0) {
+      // Group by direction
+      const toRelations = reasoning.related.filter(r => r.direction === 'to');
+      const fromRelations = reasoning.related.filter(r => r.direction === 'from');
+      
+      if (toRelations.length > 0) {
+        const targets = toRelations.map(r => `${r.concept} (${r.connector})`);
+        lines.push(`  → ${targets.join(', ')}`);
+      }
+      
+      if (fromRelations.length > 0) {
+        const sources = fromRelations.map(r => r.concept);
+        lines.push(`  ← from: ${sources.join(', ')}`);
+      }
+    } else {
+      lines.push(`  (No relations learned yet)`);
+    }
+    
+    // Show transformation paths if any
+    if (reasoning.paths.length > 0) {
+      lines.push(`  Symmetry paths: ${reasoning.paths.length}`);
+    }
+    
+    return lines.join('\n');
   }
 
   // === Control Command Handlers ===
@@ -536,7 +593,7 @@ Emotions: "I feel X"`;
   }
 
   /**
-   * Show learned connectors.
+   * Show learned connectors with their operator patterns.
    */
   _handleShowConnectors() {
     const connectors = this.agent.connectorField.getLearnedConnectors();
@@ -545,12 +602,22 @@ Emotions: "I feel X"`;
       return "I haven't learned any connector types yet.\nConnectors emerge when you teach me relations like:\n• \"cats are animals\"\n• \"love means caring\"";
     }
     
-    const lines = ["Learned connector types:"];
+    const lines = ["Learned connector types (operator patterns):"];
     
-    for (const connector of connectors) {
-      const examples = this.agent.connectorField.getExamples(connector);
-      const exampleText = examples.length > 0 ? ` (e.g., "${examples[0].slice(0, 30)}...")` : '';
-      lines.push(`• ${connector}${exampleText}`);
+    for (const label of connectors) {
+      const pattern = this.agent.connectorField.getConnector(label);
+      if (pattern) {
+        const spinStr = pattern.getSpinString ? pattern.getSpinString() : '------';
+        const role = pattern.getSemanticRole();
+        const count = pattern.count;
+        lines.push(`• ${label}: ${spinStr} (${role}, ${count}x)`);
+        
+        // Show active spins
+        const ops = pattern.toOperatorSequence();
+        if (ops.length > 0) {
+          lines.push(`    Active: ${ops.join(', ')}`);
+        }
+      }
     }
     
     lines.push(`\nTotal: ${connectors.length} connector type(s)`);
@@ -820,42 +887,30 @@ Emotions: "I feel X"`;
     
     this._notifyLearning(concepts, 'teaching');
     
-    // Show what connector type was learned/used
-    const connectorInfo = connectorResults.length > 0 
-      ? `\nConnector: "${connectorResults[0].label}" (${connectorResults[0].isNew ? 'new' : 'known'})`
-      : '';
+    // Show what connector type was learned/used with spin info
+    let connectorInfo = '';
+    if (connectorResults.length > 0) {
+      const cr = connectorResults[0];
+      const spinStr = cr.pattern?.getSpinString ? cr.pattern.getSpinString() : '';
+      const ops = cr.operators ? cr.operators.join('→') : '';
+      connectorInfo = `\nConnector: "${cr.label}" ${spinStr} [${ops}] (${cr.role || 'unknown'})`;
+    }
     
     return `I understand. I've learned that ${concepts.join(' → ')}.${connectorInfo}`;
   }
   
   /**
    * Record a transformation in the symmetry query engine.
+   * Uses the actual operator pattern from the connector.
    */
   _recordSymmetryTransformation(from, to, connectorResult) {
     if (!this.agent.symmetryQuery) return;
     
-    // Build operator trace from connector result
-    const operatorTrace = [];
+    // Get operator sequence directly from the connector pattern
+    const operators = connectorResult.operators || ['up'];
     
-    // Infer operators from connector label
-    const label = connectorResult.label?.toLowerCase() || '';
-    
-    if (label.includes('is') || label.includes('are')) {
-      operatorTrace.push({ type: 'up' });      // Assertion
-      operatorTrace.push({ type: 'charm' });   // Abstraction (is-a relation)
-    } else if (label.includes('means') || label.includes('represents')) {
-      operatorTrace.push({ type: 'charm' });   // Abstraction
-      operatorTrace.push({ type: 'strange' }); // Context mapping
-    } else if (label.includes('has') || label.includes('have')) {
-      operatorTrace.push({ type: 'up' });      // Assertion
-      operatorTrace.push({ type: 'bottom' });  // Grounding (possession)
-    } else if (label.includes('not') || label.includes('no')) {
-      operatorTrace.push({ type: 'down' });    // Negation
-    } else {
-      // Default: assertion + context
-      operatorTrace.push({ type: 'up' });
-      operatorTrace.push({ type: 'strange' });
-    }
+    // Build operator trace from the pattern
+    const operatorTrace = operators.map(op => ({ type: op }));
     
     this.agent.symmetryQuery.recordTransformation(from, to, operatorTrace);
   }
@@ -998,6 +1053,7 @@ Emotions: "I feel X"`;
 
   /**
    * Create a relation between two concepts using emergent connector system.
+   * Connectors are now operator patterns, not just labels.
    * @param {string} from
    * @param {string} to
    * @param {string} sentence - Original sentence for context
@@ -1010,40 +1066,30 @@ Emotions: "I feel X"`;
       const fromId = fromIds[fromIds.length - 1];
       const toId = toIds[toIds.length - 1];
       
-      // Compute connector signature from context
-      const context = {
-        fromConcept: from,
-        toConcept: to,
-        sentence: sentence,
-        surroundingWords: []
-      };
-      const signature = computeConnectorSignature(context, this.agent);
+      // Learn connector as operator pattern from the sentence
+      const connectorResult = this.agent.connectorField.learnFromSentence(sentence, from, to);
       
-      // Extract connector word from sentence as fallback
-      const connectorWord = extractConnectorWord(sentence, from, to);
-      
-      // Infer or learn connector type
-      const connectorResult = this.agent.connectorField.infer(signature, connectorWord);
-      
-      // If this is a new connector type, learn it
-      if (connectorResult.isNew && connectorWord) {
-        this.agent.connectorField.learn(connectorResult.label, signature, sentence);
-      } else if (!connectorResult.isNew) {
-        // Reinforce existing connector with this example
-        this.agent.connectorField.learn(connectorResult.label, signature, sentence);
-      }
+      // Get the operator sequence for this connector
+      const operatorSequence = connectorResult.pattern.toOperatorSequence();
       
       try {
         this.agent.graph.addRelation(fromId, toId, 1.0, { 
           connector: connectorResult.label,
-          similarity: connectorResult.similarity,
+          operators: operatorSequence,
+          role: connectorResult.pattern.getSemanticRole(),
           isNew: connectorResult.isNew
         });
       } catch (e) {
         // Ignore duplicate or self-reference errors
       }
       
-      return connectorResult;
+      return {
+        label: connectorResult.label,
+        isNew: connectorResult.isNew,
+        operators: operatorSequence,
+        role: connectorResult.pattern.getSemanticRole(),
+        pattern: connectorResult.pattern
+      };
     }
     return null;
   }

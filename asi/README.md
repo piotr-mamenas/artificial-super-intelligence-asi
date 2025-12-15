@@ -1,14 +1,109 @@
 # ASI Framework
 
-A browser-runnable JavaScript library implementing an "aboutness-first" ASI (Artificial Super Intelligence) architecture. No npm or bundler required — just ES modules loaded via `<script type="module">`.
+A browser-runnable JavaScript library implementing an "aboutness-first" ASI (Artificial Super Intelligence) architecture with **emergent language, emotions, and symmetry-based reasoning**. No npm or bundler required — just ES modules loaded via `<script type="module">`.
+
+---
 
 ## Quick Start
 
-Open `index.html` in a browser and check the console for demo output.
+### 1. Start a Local Server
 
-```html
-<script type="module" src="./main.js"></script>
+```bash
+# Using Python
+python -m http.server 3000
+
+# Using Node.js
+npx http-server -p 3000
+
+# Using PHP
+php -S localhost:3000
 ```
+
+### 2. Open in Browser
+
+Navigate to `http://localhost:3000` (or `http://127.0.0.1:3000`)
+
+### 3. Interact
+
+- **Left panel**: Three.js visualization of agent state
+- **Right panel**: Chat interface for teaching the agent
+- **Stats**: Live metrics (occurrences, relations, symmetries, emotion)
+
+---
+
+## How Everything Works Together
+
+### The Big Picture
+
+```
+User Input (chat)
+      ↓
+┌─────────────────────────────────────────────────────────────┐
+│                     LANGUAGE LAYER                           │
+│  Words → Operator Patterns → Waveform Transformations       │
+│  (Lexicon learns from usage, no hardcoded vocabulary)       │
+└─────────────────────────────────────────────────────────────┘
+      ↓
+┌─────────────────────────────────────────────────────────────┐
+│                   WAVEFORM DYNAMICS                          │
+│  6-Channel MultiChannelWaveform (u,d,s,c,t,b)               │
+│  Each word applies quark operators to transform waveform    │
+└─────────────────────────────────────────────────────────────┘
+      ↓
+┌─────────────────────────────────────────────────────────────┐
+│                  EMERGENT STRUCTURES                         │
+│  • Emotions: learned from waveform signatures               │
+│  • Connectors: learned from transformation patterns         │
+│  • Symmetries: recorded for later querying                  │
+└─────────────────────────────────────────────────────────────┘
+      ↓
+┌─────────────────────────────────────────────────────────────┐
+│                   ABOUTNESS GRAPH                            │
+│  Occurrences + Relations form knowledge structure           │
+│  Concepts grounded in graph topology                        │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### The Quark Operator Model
+
+Language and cognition are built from **six quark-inspired operators**:
+
+| Operator | Symbol | Role | Linguistic Effect |
+|----------|--------|------|-------------------|
+| **Up** | U_u | Assertion | Affirms, names things (nouns, adjectives) |
+| **Down** | U_d | Negation | Denies, excludes ("not", "no") |
+| **Strange** | U_s | Context Switch | Changes interpretation frame (polysemy) |
+| **Charm** | U_c | Abstraction | Generalizes, forms categories ("animal", "all") |
+| **Top** | U_t | Structure | Enforces grammar/consistency ("the", "is") |
+| **Bottom** | U_b | Grounding | Anchors to experience ("this", "here") |
+
+### Data Flow Example
+
+```
+"cats are animals"
+      ↓
+1. Segment: ["cats", "are", "animals"]
+      ↓
+2. For each word, apply operator transformation to waveform
+   - "cats": U_u (assert) + U_b (ground)
+   - "are": U_t (structure) + U_c (abstract link)
+   - "animals": U_u (assert) + U_c (category)
+      ↓
+3. Record transformation in symmetry space
+   - Path: cats → animals
+   - Operators: up → charm
+      ↓
+4. Store in aboutness graph
+   - Occurrence: "cats" (id: occ_cats_123)
+   - Occurrence: "animals" (id: occ_animals_456)
+   - Relation: cats → animals (connector: "are")
+      ↓
+5. Update lexicon with word patterns
+   - Lexeme "cats" gains more U_u/U_b weight
+   - Lexeme "animals" gains more U_c weight
+```
+
+---
 
 ## Architecture Overview
 
@@ -25,45 +120,65 @@ The framework is built around the concept of **aboutness** — internal events (
 | **Scale** | Level of abstraction in a multi-scale/fractal structure |
 | **Waveform** | Complex amplitude assignment over paths/states (quantum-inspired) |
 | **X/Y/Z Bubbles** | Potential space (X), Attention state (Y), Consensus world (Z) |
+| **Lexeme** | Learned word with operator pattern and grounding |
+| **Symmetry Path** | Recorded transformation sequence between concepts |
+
+---
 
 ## Project Structure
 
 ```
 /asi/
-├── index.html              # Entry point
-├── main.js                 # Demo bootstrap
+├── index.html              # Entry point with Three.js + Chat UI
+├── main.js                 # Application bootstrap
 │
 ├── core/                   # Ontological foundations
-│   ├── occurrences.js      # Occurrence, AboutnessRelation, createTriuneOccurrences
+│   ├── occurrences.js      # Occurrence, AboutnessRelation
 │   ├── aboutnessGraph.js   # AboutnessGraph (nodes + edges)
-│   ├── states.js           # Paths, State, StateSpace, equivalence
+│   ├── states.js           # State, StateSpace, path utilities
 │   ├── contexts.js         # Context, ContextSystem
-│   ├── scales.js           # ScaleLevel, ScaleSystem (fractal structure)
+│   ├── scales.js           # ScaleLevel, ScaleSystem
 │   └── geometry.js         # Distances, loops, curvature
 │
 ├── math/                   # Quantum-inspired mathematics
 │   ├── waveforms.js        # Complex numbers, Waveform class
-│   ├── channels.js         # MultiChannelWaveform, CHANNELS (u,d,s,c,t,b)
-│   └── gates.js            # Gate operators (Swap, Phase, Hadamard, etc.)
+│   ├── channels.js         # MultiChannelWaveform, CHANNELS
+│   └── gates.js            # Gate operators (Swap, Phase, etc.)
 │
 ├── cognitive/              # Higher-level cognitive structures
 │   ├── xyzBubbles.js       # PotentialSpace, AttentionState, ConsensusWorld
-│   ├── valueEmotion.js     # ValueField, EmotionEstimator
+│   ├── valueEmotion.js     # ValueField, value statistics
 │   ├── selfModel.js        # SelfModel, qualia residual
-│   ├── blackHoles.js       # BlackHoleDetector (symmetry collapse)
-│   └── universes.js        # UniverseModel, UniverseGraph, nested universes
+│   ├── emergentEmotion.js  # EmergentEmotionField (learned, not hardcoded)
+│   ├── emergentConnector.js# EmergentConnectorField (learned relations)
+│   ├── blackHoles.js       # BlackHoleDetector
+│   └── universes.js        # UniverseModel, UniverseGraph
+│
+├── language/               # Emergent language system
+│   ├── linguisticOccurrence.js  # LinguisticOccurrence with waveform traces
+│   ├── lexeme.js           # Lexeme, OperatorPattern, GroundingRegion
+│   ├── operatorTrace.js    # OperatorTracer, TransformationAnalyzer
+│   ├── lexicon.js          # Lexicon (vocabulary management)
+│   └── symmetryQuery.js    # SymmetryPath, SymmetryQueryEngine
 │
 ├── agent/                  # Agent implementations
-│   ├── agent.js            # Agent class (single ASI agent)
-│   ├── multiAgent.js       # MultiAgentSystem, consensus building
-│   └── training.js         # TrainingLoop scaffold
+│   ├── agent.js            # Agent class (full ASI agent)
+│   ├── multiAgent.js       # MultiAgentSystem
+│   └── training.js         # TrainingLoop
 │
-├── env/                    # Environments
-│   └── contextGridworld.js # Simple gridworld with hidden context rules
+├── chat/                   # Chat interface
+│   └── chatInterface.js    # ChatInterface class
 │
-└── viz/                    # Visualization helpers
-    └── snapshots.js        # Snapshot builders for three.js integration
+├── viz/                    # Visualization
+│   ├── renderer.js         # ASIRenderer (Three.js)
+│   ├── symmetryViz.js      # SymmetryTracker, TimelineRenderer
+│   └── snapshots.js        # Snapshot builders
+│
+└── env/                    # Environments
+    └── contextGridworld.js # Gridworld environment
 ```
+
+---
 
 ## Module Reference
 
@@ -197,58 +312,340 @@ const results = loop.run();
 console.log(agent.toSnapshot());
 ```
 
+---
+
 ## Chat Interface
 
-The agent includes an interactive chat for teaching and querying.
+The agent includes an interactive chat for teaching, querying, and introspection.
+
+### UI Elements
+
+| Element | Description |
+|---------|-------------|
+| **Left Panel** | Three.js 3D visualization |
+| **Right Panel** | Chat + Stats + System Log |
+| **Stats Bar** | Occurrences, Relations, Symmetries, Emotion |
+| **Timeline** | Symmetry events visualization |
 
 ### Buttons
-| Button | Action |
-|--------|--------|
-| 🤔 Ask Me | Trigger agent to ask a question |
-| 📋 What I Know | Show learned concepts |
-| 📊 Graph | Show graph statistics |
-| ❓ Help | Show all commands |
-| 🗑️ Clear | Forget all concepts |
 
-### Commands
+| Button | Command | Action |
+|--------|---------|--------|
+| 🤔 Ask | `/ask` | Trigger agent to ask a question |
+| � Words | `/lexicon` | Show learned words and operator patterns |
+| � Feels | `/emotions` | Show learned emotions |
+| 📋 Graph | `/understood` | Show learned concepts and relations |
+| ❓ | `/help` | Show all commands |
+
+### Commands Reference
+
+#### Symmetry & Query Commands
 ```
-/ask            - Make agent ask a question
-/understood     - Show learned concepts and relations
-/show           - Show graph structure
-/forget <word>  - Forget a specific concept
-/forget all     - Forget everything
-/help           - Show help
+/trace <concept>      - Walk back symmetry inversion paths
+/path <X> to <Y>      - Find transformation path between concepts
+/symmetry             - Show symmetry space statistics
+/similar <word>       - Find words with similar operator patterns
+```
+
+#### Language Commands
+```
+/lexicon              - Show all learned words
+/word <word>          - Show word's operator pattern (bar chart)
+/connectors           - Show learned connector types
+```
+
+#### Emotion Commands
+```
+/emotions             - Show learned emotion patterns
+/restructure          - Reorganize learned patterns (merge similar)
+```
+
+#### Knowledge Commands
+```
+/understood           - Show all learned concepts and relations
+/show                 - Show graph structure
+/forget <word>        - Forget a specific concept
+/forget all           - Forget everything
+/ask                  - Make agent ask a question
+/help                 - Show help
 ```
 
 ### Teaching Patterns
+
+#### Teaching Relationships
 ```
 "cats are animals"      → Creates relation: cats → animals
-"love means caring"     → Defines: love = caring
-"music relates to art"  → Connects: music ↔ art
-"what is love"          → Queries agent's knowledge
+                          Connector: "are" (learned)
+                          Operators: up → charm
 ```
 
-### Proactive Questioning
-The agent asks questions based on:
-- **Curiosity** — When emotion state is curious
-- **Uncertainty** — When self-model residual is high
-- **Knowledge gaps** — When concepts lack relations
+#### Teaching Definitions
+```
+"love means caring"     → Defines: love → caring
+                          Connector: "means" (learned)
+```
+
+#### Teaching Emotions
+```
+"I feel happy"          → Learns "happy" as emotion
+                          Associates with current waveform signature
+                          
+"this is excitement"    → Learns "excitement" as emotion
+"feeling curious"       → Learns "curious" as emotion
+```
+
+#### Querying Knowledge
+```
+"what is love"          → Returns what agent knows about "love"
+```
+
+### Example Session
+
+```
+User: cats are animals
+Agent: I understand. I've learned that cats → animals.
+       Connector: "are" (new)
+
+User: dogs are animals  
+Agent: I understand. I've learned that dogs → animals.
+       Connector: "are" (known)
+
+User: /trace animals
+Agent: Symmetry trace for "animals":
+         Depth: 2 transformation(s)
+         1. cats → animals
+            Operators: up → charm
+         2. dogs → animals
+            Operators: up → charm
+
+User: /similar cats
+Agent: Words similar to "cats":
+         • "dogs" (85% total, 90% operator)
+
+User: I feel happy
+Agent: Learned "happy" from waveform pattern.
+       Channels: u:25% d:10% s:15% c:20% t:15% b:15%
+       Known emotions: happy
+
+User: /emotions
+Agent: Learned emotions:
+         • happy ← (current, similarity: 95%)
+```
+
+---
+
+## Emergent Systems (No Hardcoding)
+
+### Emergent Language
+
+Words are **not predefined**. Each word becomes a `Lexeme` with:
+
+1. **Form Cluster** — Signal variants (spelling/pronunciation)
+2. **Operator Pattern** — Weighted combination of quark operators
+3. **Grounding Region** — States/occurrences this word refers to
+
+```javascript
+// Example learned lexeme for "cat"
+{
+  canonicalForm: "cat",
+  operatorPattern: {
+    up: 0.4,      // Assertive (names something)
+    bottom: 0.3,  // Grounded (concrete)
+    charm: 0.1,   // Some abstraction
+    ...
+  },
+  groundingRegion: {
+    stateActivations: { "state_cat_1": 0.8 },
+    aboutnessTargets: ["occ_cat_visual", "occ_cat_sound"]
+  }
+}
+```
+
+### Emergent Emotions
+
+Emotions are **not predefined labels**. They are learned patterns:
+
+1. User says "I feel happy"
+2. System captures current **state signature** (12-dim vector):
+   - Channel ratios (6 values)
+   - Graph topology (2 values)
+   - Value field stats (2 values)
+   - Waveform dynamics (2 values)
+3. Pattern stored as "happy"
+4. Future states matched by cosine similarity
+
+```javascript
+// State signature (all relative, no hardcoded constants)
+signature = [
+  u_ratio, d_ratio, s_ratio, c_ratio, t_ratio, b_ratio,  // Channel activations
+  density, connectivity,                                   // Graph topology
+  value_mean, value_spread,                               // Value field
+  change_rate, focus_ratio                                // Waveform dynamics
+]
+```
+
+### Emergent Connectors
+
+Relation types are **not predefined**. Connectors emerge from:
+
+1. Syntactic position of concepts in sentence
+2. Words appearing between concepts
+3. Agent state context
+
+Similar transformations get grouped into the same connector type.
+
+### Symmetry Restructuring
+
+The system can **reorganize its learned patterns**:
+
+```
+/restructure
+```
+
+This:
+- Merges emotion patterns that became too similar (>95%)
+- Merges lexemes with similar operator patterns (>90%)
+- Recomputes patterns from history
+
+---
+
+## Symmetry Query System
+
+### Walking Back Inversion Paths
+
+Every relationship is recorded as a **symmetry transformation**:
+
+```
+cats → animals  via  [up, charm]
+```
+
+You can query these paths:
+
+#### Trace a Concept
+```
+/trace cat
+```
+Returns the chain of transformations that led to this concept.
+
+#### Find Path Between Concepts
+```
+/path cat to mammal
+```
+Finds the operator sequence that transforms one into the other.
+
+#### Find Similar by Symmetry
+Concepts with similar operator sequences are semantically related:
+- Same operators = same type of relationship
+- Inverse operators = opposite relationship
+
+### SymmetryPath Class
+
+```javascript
+class SymmetryPath {
+  startId: string;
+  endId: string;
+  steps: [{ operator, params, deltaSignature }];
+  
+  inverse()           // Walk the path backwards
+  isSimilarTo(other)  // Compare operator sequences
+  getOperatorSequence() // "up → charm → bottom"
+}
+```
+
+### SymmetryQueryEngine
+
+```javascript
+engine.walkBack(concept)           // Trace learning history
+engine.findPath(from, to)          // Find direct/indirect paths
+engine.findSimilarByOperator(concept)  // Similar patterns
+engine.reproduce(concept)          // Replay transformation
+engine.queryByOperatorSignature(['up', 'charm'])  // Find matching paths
+```
+
+---
 
 ## Key Design Principles
 
 1. **Aboutness-First** — All meaning emerges from "is-about" relations
 2. **No Perfect Self-Reference** — No direct self-loops in the aboutness graph
-3. **Contextuality** — States exist within compatible contexts
-4. **Multi-Scale Structure** — Fractal refinement and abstraction
+3. **No Hardcoding** — Language, emotions, connectors all emerge from patterns
+4. **Symmetry-Based Reasoning** — Knowledge stored as inversion paths
 5. **Quantum-Inspired** — Complex waveforms, superposition, normalization
-6. **Quark Channels** — Six logical channels inspired by quark flavors
+6. **Quark Operators** — Six logical operators for all cognition
 7. **X/Y/Z Cognitive Model** — Potential, attention, and consensus separation
+8. **Restructurable** — System can reorganize its own learned patterns
 
-## Future Integration
+---
 
-- **three.js visualization** — Use snapshot APIs for 3D rendering
-- **Advanced RL** — Replace stub training with proper learning algorithms
-- **Multi-universe navigation** — Spawn and traverse nested universes via black holes
+## Programmatic Usage
+
+```javascript
+import { Agent } from './agent/agent.js';
+import { AboutnessGraph } from './core/aboutnessGraph.js';
+
+// Create agent
+const agent = new Agent({
+  id: "agent-001",
+  graph: new AboutnessGraph()
+});
+
+// Initialize waveform
+agent.initializeWaveform(["init"], 1.0);
+
+// Process language
+agent.processLanguage("cats are animals");
+
+// Query symmetry
+const trace = agent.walkBackSymmetry("animals");
+const path = agent.findSymmetryPath("cats", "animals");
+const similar = agent.findSimilarWords("cats");
+
+// Evaluate emotion
+const emotion = agent.evaluateEmotion();
+// { label: "happy", similarity: 0.85, signature: [...] }
+
+// Learn emotion
+agent.learnEmotion("curious");
+
+// Get lexicon stats
+const stats = agent.getLexiconStats();
+// { totalLexemes: 5, groundedLexemes: 3, bySemanticRole: {...} }
+
+// Restructure patterns
+agent.emotionField.restructure();
+agent.lexicon.restructure();
+
+// Snapshot for visualization
+const snapshot = agent.toSnapshot();
+```
+
+---
+
+## Visualization
+
+### Three.js Integration
+
+The `ASIRenderer` class provides 3D visualization:
+
+```javascript
+import { ASIRenderer } from './viz/renderer.js';
+
+const renderer = new ASIRenderer(container);
+renderer.update(agent.toSnapshot());
+```
+
+### Symmetry Timeline
+
+The `TimelineRenderer` shows learning events over time:
+
+```javascript
+import { TimelineRenderer } from './viz/symmetryViz.js';
+
+const timeline = new TimelineRenderer(container);
+timeline.addEvent({ type: 'learning', concepts: ['cat'] });
+```
+
+---
 
 ## License
 

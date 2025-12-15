@@ -7,6 +7,7 @@ import { AboutnessGraph } from './core/aboutnessGraph.js';
 import { ASIRenderer } from './viz/renderer.js';
 import { SymmetryTracker, TimelineRenderer, SymmetryDetector } from './viz/symmetryViz.js';
 import { ChatInterface } from './chat/chatInterface.js';
+import { PhaseGate, HadamardGate, ScaleGate } from './math/gates.js';
 
 // ============================================================
 // Output Helper
@@ -44,11 +45,21 @@ try {
   output.textContent = '';
   log("ASI Framework initializing...", "info");
 
-  // Create agent with empty aboutness graph
+  // Create agent with empty aboutness graph and default gates
   const graph = new AboutnessGraph();
+  
+  // Default gates for quark-inspired waveform evolution
+  const defaultGates = [
+    new PhaseGate('u', Math.PI / 8),   // Slow phase rotation on up channel
+    new PhaseGate('d', -Math.PI / 8),  // Opposite rotation on down channel
+    new ScaleGate('s', 0.98),          // Slight decay on strange (context drift)
+    new ScaleGate('c', 1.01),          // Slight growth on charm (abstraction builds)
+  ];
+  
   const agent = new Agent({
     id: "agent-001",
     graph,
+    gates: defaultGates,
     metadata: { description: "Interactive ASI agent" }
   });
 
