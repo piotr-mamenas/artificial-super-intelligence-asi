@@ -139,57 +139,96 @@ export class Lexicon {
   }
 
   /**
-   * Apply a lexeme's learned transformation to the agent's waveform.
+   * Apply a lexeme's spin pattern transformation to the agent's waveform.
+   * Spins combine/interfere with the waveform - this is where meaning transforms.
    */
   _applyLexemeTransformation(lexeme, agent) {
     const pattern = lexeme.operatorPattern;
     const waveform = agent.attentionState?.waveform;
     if (!waveform) return;
     
-    // Apply transformation based on operator weights
-    // This is where the learned pattern modifies the waveform
+    // Get the spin pattern
+    const spinPattern = pattern.spinPattern;
+    if (!spinPattern) return;
     
-    // Up: boost amplitude in 'u' channel
-    if (pattern.weights.up > 0.1) {
-      this._boostChannel(waveform, 'u', pattern.weights.up);
-      globalTracer.record('up', { weight: pattern.weights.up });
-    }
+    // Apply spin transformation to each channel
+    // Spin up (+1/2) → rotate phase forward, boost amplitude
+    // Spin down (-1/2) → rotate phase backward, reduce amplitude
+    // Spin zero (0) → superposition, spread amplitude
     
-    // Down: reduce amplitude in 'd' channel or opposing
-    if (pattern.weights.down > 0.1) {
-      this._boostChannel(waveform, 'd', pattern.weights.down);
-      globalTracer.record('down', { weight: pattern.weights.down });
-    }
+    const channels = ['u', 'd', 's', 'c', 't', 'b'];
     
-    // Strange: shift between contexts
-    if (pattern.weights.strange > 0.1) {
-      this._shiftContext(waveform, pattern.weights.strange);
-      globalTracer.record('strange', { weight: pattern.weights.strange });
-    }
-    
-    // Charm: compress/abstract
-    if (pattern.weights.charm > 0.1) {
-      this._boostChannel(waveform, 'c', pattern.weights.charm);
-      globalTracer.record('charm', { weight: pattern.weights.charm });
-    }
-    
-    // Top: structural constraints
-    if (pattern.weights.top > 0.1) {
-      this._boostChannel(waveform, 't', pattern.weights.top);
-      globalTracer.record('top', { weight: pattern.weights.top });
-    }
-    
-    // Bottom: grounding
-    if (pattern.weights.bottom > 0.1) {
-      this._boostChannel(waveform, 'b', pattern.weights.bottom);
-      globalTracer.record('bottom', { weight: pattern.weights.bottom });
+    for (const channelName of channels) {
+      const spin = spinPattern.getSpin(channelName);
+      const channel = waveform.getChannel(channelName);
+      if (!channel) continue;
+      
+      if (spin > 0) {
+        // Spin up: constructive interference - boost and rotate forward
+        this._applySpinUp(channel, spin);
+        globalTracer.record(this._channelToOp(channelName), { spin: '+1/2' });
+      } else if (spin < 0) {
+        // Spin down: destructive interference - reduce and rotate backward
+        this._applySpinDown(channel, spin);
+        globalTracer.record(this._channelToOp(channelName), { spin: '-1/2', negative: true });
+      }
+      // Spin zero: no transformation (superposition preserved)
     }
     
     waveform.normalizeAll();
   }
 
   /**
+   * Apply spin-up transformation to a channel.
+   * Constructive interference: boost amplitude, rotate phase forward.
+   */
+  _applySpinUp(channel, spinValue) {
+    const factor = 1 + Math.abs(spinValue);  // +1/2 → 1.5x
+    const phaseRotation = Math.PI / 6;  // 30 degree forward rotation
+    
+    for (const id of channel.keys()) {
+      const amp = channel.get(id);
+      // Rotate phase and scale amplitude
+      const cos = Math.cos(phaseRotation);
+      const sin = Math.sin(phaseRotation);
+      channel.set(id, {
+        re: (amp.re * cos - amp.im * sin) * factor,
+        im: (amp.re * sin + amp.im * cos) * factor
+      });
+    }
+  }
+
+  /**
+   * Apply spin-down transformation to a channel.
+   * Destructive interference: reduce amplitude, rotate phase backward.
+   */
+  _applySpinDown(channel, spinValue) {
+    const factor = 1 / (1 + Math.abs(spinValue));  // -1/2 → 0.67x
+    const phaseRotation = -Math.PI / 6;  // 30 degree backward rotation
+    
+    for (const id of channel.keys()) {
+      const amp = channel.get(id);
+      // Rotate phase and scale amplitude
+      const cos = Math.cos(phaseRotation);
+      const sin = Math.sin(phaseRotation);
+      channel.set(id, {
+        re: (amp.re * cos - amp.im * sin) * factor,
+        im: (amp.re * sin + amp.im * cos) * factor
+      });
+    }
+  }
+
+  /**
+   * Map channel name to operator name.
+   */
+  _channelToOp(channel) {
+    const map = { u: 'up', d: 'down', s: 'strange', c: 'charm', t: 'top', b: 'bottom' };
+    return map[channel] || channel;
+  }
+
+  /**
    * Apply default transformation for unknown forms.
+   * Uses spin-based heuristics.
    */
   _applyDefaultTransformation(form, agent) {
     const waveform = agent.attentionState?.waveform;

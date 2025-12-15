@@ -336,31 +336,37 @@ export function createSpinPattern(desc) {
 }
 
 /**
- * Standard spin patterns for connector types.
- * These are the "logical structures" that emerge from spin combinations.
+ * CONNECTOR_SPIN_PATTERNS: Empty by default - patterns EMERGE from usage.
+ * This map is populated dynamically as patterns are learned.
+ * No hardcoded connector types.
  */
-export const CONNECTOR_SPIN_PATTERNS = {
-  // is-a: assertion (u+) combined with abstraction (c+)
-  'is-a': createSpinPattern({ u: '+', d: '0', s: '0', c: '+', t: '0', b: '0' }),
-  
-  // has-a: assertion (u+) with grounding (b+)
-  'has-a': createSpinPattern({ u: '+', d: '0', s: '0', c: '0', t: '0', b: '+' }),
-  
-  // means: abstraction (c+) with context switch (s+)
-  'means': createSpinPattern({ u: '0', d: '0', s: '+', c: '+', t: '0', b: '0' }),
-  
-  // negation: down dominant, assertion suppressed
-  'negation': createSpinPattern({ u: '-', d: '+', s: '0', c: '0', t: '0', b: '0' }),
-  
-  // similarity: context (s+) with some abstraction (c+)
-  'similarity': createSpinPattern({ u: '0', d: '0', s: '+', c: '+', t: '0', b: '0' }),
-  
-  // causes: structure (t+) with grounding (b+)
-  'causes': createSpinPattern({ u: '+', d: '0', s: '0', c: '0', t: '+', b: '+' }),
-  
-  // part-of: grounding (b+) with structure (t+)
-  'part-of': createSpinPattern({ u: '0', d: '0', s: '0', c: '0', t: '+', b: '+' })
-};
+export const CONNECTOR_SPIN_PATTERNS = new Map();
+
+/**
+ * Learn a connector spin pattern from observed transformations.
+ * Patterns emerge from repeated observations, not from hardcoding.
+ * @param {string} label - Learned label
+ * @param {QuarkSpinPattern} pattern - Observed pattern
+ */
+export function learnConnectorPattern(label, pattern) {
+  const existing = CONNECTOR_SPIN_PATTERNS.get(label);
+  if (existing) {
+    // Reinforce existing pattern
+    existing.collapseTowards(pattern);
+  } else {
+    // Learn new pattern
+    CONNECTOR_SPIN_PATTERNS.set(label, pattern.clone());
+  }
+}
+
+/**
+ * Get a learned connector pattern, or null if not learned.
+ * @param {string} label
+ * @returns {QuarkSpinPattern|null}
+ */
+export function getConnectorPattern(label) {
+  return CONNECTOR_SPIN_PATTERNS.get(label) || null;
+}
 
 // ============================================================
 // Spin-based Waveform Analysis

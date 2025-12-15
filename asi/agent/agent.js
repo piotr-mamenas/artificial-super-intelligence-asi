@@ -4,6 +4,7 @@ import { AboutnessGraph } from '../core/aboutnessGraph.js';
 import { StateSpace, buildStateSpaceFromGraph } from '../core/states.js';
 import { ContextSystem, buildDefaultContexts } from '../core/contexts.js';
 import { ScaleSystem, buildSingleScaleSystem } from '../core/scales.js';
+import { ConceptSpace } from '../core/conceptWaveform.js';
 import { PotentialSpace, AttentionState, ConsensusWorld } from '../cognitive/xyzBubbles.js';
 import { ValueField } from '../cognitive/valueEmotion.js';
 import { SelfModel } from '../cognitive/selfModel.js';
@@ -11,7 +12,7 @@ import { EmergentEmotionField, computeStateSignature } from '../cognitive/emerge
 import { EmergentConnectorField } from '../cognitive/emergentConnector.js';
 import { Lexicon } from '../language/lexicon.js';
 import { SymmetryQueryEngine } from '../language/symmetryQuery.js';
-import { detectUncertainty, waveformToSpinPattern } from '../math/quarkSpins.js';
+import { detectUncertainty, waveformToSpinPattern, QuarkSpinPattern, SPIN_UP } from '../math/quarkSpins.js';
 import { MultiChannelWaveform, CHANNELS } from '../math/channels.js';
 import { Waveform, cAbsSq } from '../math/waveforms.js';
 
@@ -70,6 +71,9 @@ export class Agent {
 
     // Language (emergent lexicon)
     this.lexicon = new Lexicon();
+    
+    // Concept space - concepts ARE waveforms, not labels
+    this.conceptSpace = new ConceptSpace();
     
     // Symmetry query engine for walking inversion paths
     this.symmetryQuery = new SymmetryQueryEngine(this);
@@ -185,6 +189,7 @@ export class Agent {
   /**
    * Process linguistic input through the lexicon.
    * Words become operator patterns that transform the waveform.
+   * The resulting waveform state IS the concept.
    * @param {string} text - Input text
    * @returns {object} Processing result with lexemes and transformation
    */
@@ -192,13 +197,97 @@ export class Agent {
     // Apply gates to evolve waveform before processing
     this.step();
     
-    // Process through lexicon
+    // Process through lexicon - transforms waveform
     const occurrences = this.lexicon.processInput(text, this);
     
     // Apply gates again after processing
     this.step();
     
     return occurrences;
+  }
+
+  /**
+   * Learn a concept as a waveform pattern.
+   * The waveform state after processing IS the concept.
+   * @param {string} signal - The concept signal (word/phrase)
+   * @returns {object} The learned concept waveform
+   */
+  learnConceptWaveform(signal) {
+    // Process the signal to transform waveform
+    this.processLanguage(signal);
+    
+    // The current waveform state IS the concept
+    const concept = this.conceptSpace.learnConcept(signal, this.attentionState.waveform);
+    
+    return concept;
+  }
+
+  /**
+   * Learn a relation as a symmetry transformation between concept waveforms.
+   * @param {string} from - Source concept
+   * @param {string} to - Target concept
+   * @param {string} relationType - Type of relation (is-a, has-a, etc)
+   */
+  learnTransformation(from, to, relationType) {
+    // Ensure both concepts exist as waveforms
+    const fromConcept = this.conceptSpace.concepts.get(from.toLowerCase()) 
+      || this.learnConceptWaveform(from);
+    const toConcept = this.conceptSpace.concepts.get(to.toLowerCase())
+      || this.learnConceptWaveform(to);
+    
+    // Find the transformation between them
+    const transform = fromConcept.findTransformationTo(toConcept);
+    
+    // Store the learned transformation
+    this.conceptSpace.learnTransformation(from, to, transform);
+    
+    return {
+      from,
+      to,
+      transformation: transform.getPatternString(),
+      spinPattern: transform
+    };
+  }
+
+  /**
+   * Query concepts by waveform resonance.
+   * This is how we "understand" - by finding resonant patterns.
+   * @param {string} query - Query signal
+   * @returns {Array} Resonant concepts sorted by resonance
+   */
+  queryByResonance(query) {
+    // Process query to get waveform state
+    this.processLanguage(query);
+    
+    // Find concepts that resonate with current waveform
+    const resonant = this.conceptSpace.findResonant(this.attentionState.waveform, 0.2);
+    
+    return resonant;
+  }
+
+  /**
+   * Attempt to invert understanding of a concept.
+   * Successful inversion = true understanding.
+   * @param {string} conceptLabel
+   * @returns {object} Inversion result
+   */
+  attemptConceptInversion(conceptLabel) {
+    const concept = this.conceptSpace.concepts.get(conceptLabel.toLowerCase());
+    
+    if (!concept) {
+      return { success: false, reason: 'concept not learned' };
+    }
+    
+    const result = concept.attemptInversion();
+    
+    return {
+      success: result.success,
+      error: result.error,
+      inverse: result.inverse,
+      interpretation: result.success 
+        ? `I understand "${conceptLabel}" - I can construct its inverse`
+        : `I don't fully understand "${conceptLabel}" - inversion error: ${result.error.toFixed(2)}`
+    };
   }
 
   /**

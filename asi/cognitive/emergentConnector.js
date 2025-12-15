@@ -94,73 +94,65 @@ export class ConnectorPattern {
 
   /**
    * Infer spin pattern from transformation context.
+   * NO HARDCODED PATTERNS - derive from waveform changes.
    */
   _inferSpinPattern(context) {
-    const transformType = context.transformType || 'assertion';
-    
-    // Use predefined spin patterns if available
-    if (CONNECTOR_SPIN_PATTERNS[transformType]) {
-      return CONNECTOR_SPIN_PATTERNS[transformType].clone();
-    }
-    
-    // Otherwise create from transformation type
     const pattern = new QuarkSpinPattern();
     
-    switch (transformType) {
-      case 'is-a':
-      case 'subsumption':
-        // Assertion (u+) + Abstraction (c+)
-        pattern.setSpin('u', SPIN_UP);
-        pattern.setSpin('c', SPIN_UP);
-        break;
-        
-      case 'has-a':
-      case 'possession':
-        // Assertion (u+) + Grounding (b+)
-        pattern.setSpin('u', SPIN_UP);
-        pattern.setSpin('b', SPIN_UP);
-        break;
-        
-      case 'means':
-      case 'definition':
-        // Abstraction (c+) + Context (s+)
-        pattern.setSpin('c', SPIN_UP);
-        pattern.setSpin('s', SPIN_UP);
-        break;
-        
-      case 'causes':
-      case 'causation':
-        // Structure (t+) + Grounding (b+) + Assertion (u+)
-        pattern.setSpin('u', SPIN_UP);
-        pattern.setSpin('t', SPIN_UP);
-        pattern.setSpin('b', SPIN_UP);
-        break;
-        
-      case 'negation':
-      case 'not':
-        // Negation (d+) + Anti-assertion (u-)
-        pattern.setSpin('u', SPIN_DOWN);
-        pattern.setSpin('d', SPIN_UP);
-        break;
-        
-      case 'similarity':
-      case 'like':
-        // Context (s+) + Abstraction (c+)
-        pattern.setSpin('s', SPIN_UP);
-        pattern.setSpin('c', SPIN_UP);
-        break;
-        
-      case 'part-of':
-      case 'composition':
-        // Grounding (b+) + Structure (t+)
-        pattern.setSpin('t', SPIN_UP);
-        pattern.setSpin('b', SPIN_UP);
-        break;
-        
-      default:
-        // Default: assertion with context
-        pattern.setSpin('u', SPIN_UP);
-        pattern.setSpin('s', SPIN_UP);
+    // Check if we have a learned pattern for this type
+    const learned = CONNECTOR_SPIN_PATTERNS.get(context.transformType);
+    if (learned) {
+      return learned.clone();
+    }
+    
+    // Derive pattern from waveform delta if available
+    if (context.waveformBefore && context.waveformAfter) {
+      return this._derivePatternFromWaveformDelta(
+        context.waveformBefore, 
+        context.waveformAfter
+      );
+    }
+    
+    // Otherwise derive from context properties (emergent)
+    // Direction affects u/d spins
+    if (context.direction > 0) {
+      pattern.setSpin('u', SPIN_UP);
+    } else if (context.direction < 0) {
+      pattern.setSpin('d', SPIN_UP);
+    }
+    
+    // Symmetry affects s/c spins
+    if (context.symmetry > 0.5) {
+      pattern.setSpin('s', SPIN_UP);
+    }
+    if (context.symmetry < 0.5 && context.symmetry > 0) {
+      pattern.setSpin('c', SPIN_UP);
+    }
+    
+    return pattern;
+  }
+
+  /**
+   * Derive spin pattern from waveform changes.
+   * The pattern emerges from how the waveform transformed.
+   */
+  _derivePatternFromWaveformDelta(before, after) {
+    const pattern = new QuarkSpinPattern();
+    const channels = ['u', 'd', 's', 'c', 't', 'b'];
+    
+    for (const ch of channels) {
+      const beforeNorm = before.channels?.[ch]?.norm || 0;
+      const afterNorm = after.channels?.[ch]?.norm || 0;
+      
+      // Significant increase = spin up
+      if (afterNorm > beforeNorm * 1.2) {
+        pattern.setSpin(ch, SPIN_UP);
+      }
+      // Significant decrease = spin down
+      else if (afterNorm < beforeNorm * 0.8) {
+        pattern.setSpin(ch, SPIN_DOWN);
+      }
+      // Otherwise superposition
     }
     
     return pattern;
@@ -343,7 +335,19 @@ export class EmergentConnectorField {
     /** @type {Map<string, ConnectorPattern>} label -> pattern */
     this.learnedConnectors = new Map();
     
-    this.similarityThreshold = 0.7;
+    // Adaptive threshold - no hardcoded value
+    this._baseThreshold = 0.5;
+  }
+
+  /**
+   * Get adaptive similarity threshold.
+   * Increases with more learned patterns to maintain distinction.
+   */
+  get similarityThreshold() {
+    const count = this.learnedConnectors.size;
+    if (count <= 1) return this._baseThreshold;
+    // Threshold grows logarithmically with pattern count
+    return Math.min(0.95, this._baseThreshold + Math.log(count) * 0.1);
   }
 
   /**

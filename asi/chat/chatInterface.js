@@ -400,52 +400,61 @@ export class ChatInterface {
   }
 
   /**
-   * Handle questions - use memory and reasoning to answer.
+   * Handle questions - use waveform resonance to find understanding.
+   * Concepts ARE waveforms - we find answers by resonance, not lookup.
    */
   _handleQuestion(text, concepts) {
-    // Check what concept we're being asked about
     const askedConcept = concepts.length > 0 ? concepts[concepts.length - 1] : null;
     
     if (!askedConcept) {
       return "What would you like to know about?";
     }
     
-    // Activate context from memory for all concepts mentioned
-    this.agent.activateContext(concepts);
+    // Query by waveform resonance - this is how we "understand"
+    const resonant = this.agent.queryByResonance(askedConcept);
     
-    // Use reasoning system to find what we know
-    const reasoning = this.agent.reasonAbout(askedConcept);
+    // Check if we have the concept as a waveform
+    const conceptWaveform = this.agent.conceptSpace.concepts.get(askedConcept.toLowerCase());
     
-    if (!reasoning.found) {
+    if (!conceptWaveform) {
       return `I don't know about "${askedConcept}" yet.\n` +
              `Teach me by saying "${askedConcept} is..." or "${askedConcept} means..."`;
     }
     
-    // Build response from memory
+    // Build response from waveform analysis
     const lines = [`About "${askedConcept}":`];
     
-    if (reasoning.related.length > 0) {
-      // Group by direction
-      const toRelations = reasoning.related.filter(r => r.direction === 'to');
-      const fromRelations = reasoning.related.filter(r => r.direction === 'from');
+    // Show the concept's spin signature (derived from waveform)
+    const signature = conceptWaveform.getSpinSignature();
+    lines.push(`  Spin signature: ${signature.getPatternString()}`);
+    lines.push(`  Coherence: ${(conceptWaveform.coherence * 100).toFixed(0)}%`);
+    
+    // Show resonant concepts (related by waveform similarity)
+    if (resonant.length > 1) {
+      const related = resonant
+        .filter(r => r.label !== askedConcept.toLowerCase())
+        .slice(0, 5);
       
-      if (toRelations.length > 0) {
-        const targets = toRelations.map(r => `${r.concept} (${r.connector})`);
-        lines.push(`  → ${targets.join(', ')}`);
+      if (related.length > 0) {
+        lines.push(`  Resonates with:`);
+        for (const r of related) {
+          lines.push(`    • ${r.label} (${(r.resonance * 100).toFixed(0)}% resonance)`);
+        }
       }
-      
-      if (fromRelations.length > 0) {
-        const sources = fromRelations.map(r => r.concept);
-        lines.push(`  ← from: ${sources.join(', ')}`);
-      }
-    } else {
-      lines.push(`  (No relations learned yet)`);
     }
     
-    // Show transformation paths if any
-    if (reasoning.paths.length > 0) {
-      lines.push(`  Symmetry paths: ${reasoning.paths.length}`);
+    // Show transformation history
+    if (conceptWaveform.transformationHistory.length > 0) {
+      const lastTrans = conceptWaveform.transformationHistory.slice(-3);
+      lines.push(`  Recent transformations:`);
+      for (const t of lastTrans) {
+        lines.push(`    • ${t.pattern}${t.label ? ` (${t.label})` : ''}`);
+      }
     }
+    
+    // Attempt inversion to show understanding depth
+    const inversion = this.agent.attemptConceptInversion(askedConcept);
+    lines.push(`  Understanding: ${inversion.success ? '✓ Can invert' : '○ Partial'} (error: ${(inversion.error * 100).toFixed(0)}%)`);
     
     return lines.join('\n');
   }
@@ -835,51 +844,70 @@ Emotions: "I feel X"`;
   }
 
   /**
-   * Extract concept words from text.
+   * Extract concepts from text.
+   * Uses learned coherence to filter out low-content words.
    * @param {string} text
    * @returns {string[]}
    */
   _extractConcepts(text) {
-    // Remove common words and extract nouns/concepts
-    const stopWords = new Set([
-      'a', 'an', 'the', 'is', 'are', 'was', 'were', 'be', 'been', 'being',
-      'have', 'has', 'had', 'do', 'does', 'did', 'will', 'would', 'could',
-      'should', 'may', 'might', 'must', 'shall', 'can', 'to', 'of', 'in',
-      'for', 'on', 'with', 'at', 'by', 'from', 'as', 'into', 'through',
-      'during', 'before', 'after', 'above', 'below', 'between', 'under',
-      'again', 'further', 'then', 'once', 'here', 'there', 'when', 'where',
-      'why', 'how', 'all', 'each', 'few', 'more', 'most', 'other', 'some',
-      'such', 'no', 'nor', 'not', 'only', 'own', 'same', 'so', 'than',
-      'too', 'very', 'just', 'and', 'but', 'if', 'or', 'because', 'until',
-      'while', 'although', 'though', 'i', 'you', 'he', 'she', 'it', 'we',
-      'they', 'what', 'which', 'who', 'whom', 'this', 'that', 'these',
-      'those', 'am', 'its', 'my', 'your', 'his', 'her', 'our', 'their',
-      'means', 'represents', 'relates', 'connected', 'remember', 'learn'
-    ]);
-    
     const words = text.toLowerCase()
       .replace(/[^\w\s]/g, '')
       .split(/\s+/)
-      .filter(w => w.length > 2 && !stopWords.has(w));
+      .filter(w => w.length > 1);
     
-    return [...new Set(words)];
+    // Filter based on learned semantic content
+    const concepts = [];
+    for (const word of words) {
+      // Check if word has learned semantic content
+      const conceptWf = this.agent.conceptSpace?.concepts.get(word);
+      
+      if (conceptWf) {
+        // Include if it has sufficient coherence (learned content)
+        if (conceptWf.coherence > 0.1) {
+          concepts.push(word);
+        }
+      } else {
+        // New word - include if it's not too short (emergent filter)
+        if (word.length > 2) {
+          concepts.push(word);
+        }
+      }
+    }
+    
+    return [...new Set(concepts)];
   }
 
   /**
    * Handle teaching statements (X is Y).
+   * Concepts ARE waveforms - relations are symmetry transformations.
    */
   _handleTeaching(text, concepts) {
-    const occIds = this._createOccurrencesForConcepts(concepts, 'teaching');
+    // Learn each concept as a waveform pattern
+    const conceptWaveforms = [];
+    for (const concept of concepts) {
+      const wf = this.agent.learnConceptWaveform(concept);
+      conceptWaveforms.push(wf);
+    }
     
-    // Create relations between concepts using emergent connectors
+    // Learn transformations between consecutive concepts
+    const transformations = [];
+    if (concepts.length >= 2) {
+      for (let i = 0; i < concepts.length - 1; i++) {
+        const result = this.agent.learnTransformation(concepts[i], concepts[i + 1], 'is-a');
+        transformations.push(result);
+      }
+    }
+    
+    // Also create occurrences in graph (for compatibility)
+    this._createOccurrencesForConcepts(concepts, 'teaching');
+    
+    // Create relations with connector patterns
     const connectorResults = [];
     if (concepts.length >= 2) {
       for (let i = 0; i < concepts.length - 1; i++) {
         const result = this._createRelation(concepts[i], concepts[i + 1], text);
         if (result) {
           connectorResults.push(result);
-          
-          // Record transformation in symmetry query engine
           this._recordSymmetryTransformation(concepts[i], concepts[i + 1], result);
         }
       }
@@ -887,16 +915,22 @@ Emotions: "I feel X"`;
     
     this._notifyLearning(concepts, 'teaching');
     
-    // Show what connector type was learned/used with spin info
-    let connectorInfo = '';
-    if (connectorResults.length > 0) {
-      const cr = connectorResults[0];
-      const spinStr = cr.pattern?.getSpinString ? cr.pattern.getSpinString() : '';
-      const ops = cr.operators ? cr.operators.join('→') : '';
-      connectorInfo = `\nConnector: "${cr.label}" ${spinStr} [${ops}] (${cr.role || 'unknown'})`;
+    // Build response showing waveform-based learning
+    const lines = [`Learned: ${concepts.join(' → ')}`];
+    
+    // Show transformation info
+    if (transformations.length > 0) {
+      const t = transformations[0];
+      lines.push(`  Transformation: ${t.transformation}`);
     }
     
-    return `I understand. I've learned that ${concepts.join(' → ')}.${connectorInfo}`;
+    // Show concept coherence
+    if (conceptWaveforms.length > 0) {
+      const avgCoherence = conceptWaveforms.reduce((sum, c) => sum + c.coherence, 0) / conceptWaveforms.length;
+      lines.push(`  Coherence: ${(avgCoherence * 100).toFixed(0)}%`);
+    }
+    
+    return lines.join('\n');
   }
   
   /**

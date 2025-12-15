@@ -1,138 +1,151 @@
 // Language: Lexeme (Word Type)
 // A lexeme is the learned type behind linguistic occurrences
-// Defined by: form cluster, canonical operator pattern, grounding region
+// Defined by: form cluster, spin pattern, grounding region
+
+import { 
+  QuarkSpinPattern, 
+  SPIN_UP, 
+  SPIN_DOWN, 
+  SPIN_ZERO 
+} from '../math/quarkSpins.js';
 
 // ============================================================
-// OperatorPattern - Canonical quark operator composition
+// OperatorPattern - Quark spin pattern for lexeme transformation
 // ============================================================
 
 /**
- * OperatorPattern: represents the canonical quark-operator transformation
+ * OperatorPattern: represents the quark spin transformation
  * that a lexeme applies to the waveform.
  * 
- * Operators: up, down, strange, charm, top, bottom
- * Pattern is a weighted composition of these operators.
+ * Uses discrete half-spins (+1/2, -1/2, 0), NOT continuous weights.
+ * The spin pattern determines how this word transforms meaning.
  */
 export class OperatorPattern {
   constructor() {
-    // Weights for each operator type (learned from traces)
-    this.weights = {
-      up: 0,      // Assertion / evidence-raising
-      down: 0,    // Negation / evidence-lowering
-      strange: 0, // Context switching
-      charm: 0,   // Compression / abstraction
-      top: 0,     // Structural constraints
-      bottom: 0   // Grounding to experience
+    // Spin pattern (discrete half-spins)
+    this.spinPattern = new QuarkSpinPattern();
+    
+    // Accumulated spin votes (used to collapse to discrete values)
+    this.spinVotes = {
+      u: 0, d: 0, s: 0, c: 0, t: 0, b: 0
     };
     
-    // Typical operator sequence (most common ordering)
+    // Typical operator sequence
     this.sequence = [];
     
     // Number of traces used to build this pattern
     this.traceCount = 0;
+    
+    // Legacy: weights for compatibility (derived from spins)
+    this.weights = { up: 0, down: 0, strange: 0, charm: 0, top: 0, bottom: 0 };
   }
 
   /**
    * Update pattern from an operator trace.
+   * Operators vote for spin direction, then collapse to discrete spins.
    * @param {Array} trace - Array of {type, params} objects
    */
   updateFromTrace(trace) {
     this.traceCount++;
-    const alpha = 1 / this.traceCount; // Learning rate decays
-    
-    // Count operator occurrences in trace
-    const counts = { up: 0, down: 0, strange: 0, charm: 0, top: 0, bottom: 0 };
     const sequence = [];
     
+    // Each operator in trace votes for spin direction
     for (const op of trace) {
-      if (counts.hasOwnProperty(op.type)) {
-        counts[op.type]++;
+      const channel = this._operatorToChannel(op.type);
+      if (channel) {
+        // Positive operators vote up, negative vote down
+        const vote = op.negative ? -1 : 1;
+        this.spinVotes[channel] += vote;
         sequence.push(op.type);
       }
     }
     
-    // Normalize counts
-    const total = Object.values(counts).reduce((a, b) => a + b, 0) || 1;
+    // Collapse votes to discrete spins
+    this._collapseSpins();
     
-    // Update weights with exponential moving average
-    for (const opType of Object.keys(this.weights)) {
-      const newWeight = counts[opType] / total;
-      this.weights[opType] = this.weights[opType] * (1 - alpha) + newWeight * alpha;
+    // Update sequence
+    if (sequence.length > 0) {
+      this.sequence = sequence;
     }
     
-    // Update typical sequence (keep if similar to existing)
-    if (this.sequence.length === 0) {
-      this.sequence = sequence;
-    } else if (sequence.length > 0) {
-      // Blend: keep existing if similar, otherwise update slowly
-      const similarity = this._sequenceSimilarity(this.sequence, sequence);
-      if (similarity < 0.5 && this.traceCount > 3) {
-        // Significantly different - might be multi-sense word
-        // For now, just keep the more common pattern
+    // Update legacy weights from spins
+    this._updateWeightsFromSpins();
+  }
+
+  /**
+   * Map operator type to channel name.
+   */
+  _operatorToChannel(opType) {
+    const map = {
+      up: 'u', down: 'd', strange: 's', 
+      charm: 'c', top: 't', bottom: 'b'
+    };
+    return map[opType] || null;
+  }
+
+  /**
+   * Collapse accumulated votes to discrete spin values.
+   * Votes > threshold → spin up
+   * Votes < -threshold → spin down
+   * Otherwise → superposition
+   */
+  _collapseSpins() {
+    const threshold = Math.max(1, this.traceCount * 0.3);
+    
+    for (const [channel, votes] of Object.entries(this.spinVotes)) {
+      if (votes > threshold) {
+        this.spinPattern.setSpin(channel, SPIN_UP);
+      } else if (votes < -threshold) {
+        this.spinPattern.setSpin(channel, SPIN_DOWN);
       } else {
-        this.sequence = sequence;
+        this.spinPattern.setSpin(channel, SPIN_ZERO);
       }
     }
   }
 
   /**
-   * Compute similarity between two operator sequences.
+   * Update legacy weights from spin pattern.
    */
-  _sequenceSimilarity(seq1, seq2) {
-    if (seq1.length === 0 && seq2.length === 0) return 1;
-    if (seq1.length === 0 || seq2.length === 0) return 0;
-    
-    // Count matching operators in same positions
-    const minLen = Math.min(seq1.length, seq2.length);
-    const maxLen = Math.max(seq1.length, seq2.length);
-    let matches = 0;
-    
-    for (let i = 0; i < minLen; i++) {
-      if (seq1[i] === seq2[i]) matches++;
+  _updateWeightsFromSpins() {
+    const channelToOp = { u: 'up', d: 'down', s: 'strange', c: 'charm', t: 'top', b: 'bottom' };
+    for (const [channel, opName] of Object.entries(channelToOp)) {
+      const spin = this.spinPattern.getSpin(channel);
+      // Convert spin to weight: +0.5 → 1, -0.5 → -1, 0 → 0
+      this.weights[opName] = spin * 2;
     }
-    
-    return matches / maxLen;
   }
 
   /**
-   * Get the dominant operator type.
-   * @returns {string}
+   * Get the dominant operator type (highest spin magnitude).
    */
   getDominantOperator() {
-    let maxWeight = -1;
+    const channelToOp = { u: 'up', d: 'down', s: 'strange', c: 'charm', t: 'top', b: 'bottom' };
+    let maxMag = 0;
     let dominant = 'up';
     
-    for (const [op, weight] of Object.entries(this.weights)) {
-      if (weight > maxWeight) {
-        maxWeight = weight;
-        dominant = op;
+    for (const [channel, opName] of Object.entries(channelToOp)) {
+      const mag = Math.abs(this.spinPattern.getSpin(channel));
+      if (mag > maxMag) {
+        maxMag = mag;
+        dominant = opName;
       }
     }
-    
     return dominant;
   }
 
   /**
+   * Get the spin pattern string (e.g., "+0-0+0").
+   */
+  getSpinString() {
+    return this.spinPattern.getPatternString();
+  }
+
+  /**
    * Compute similarity to another operator pattern.
-   * @param {OperatorPattern} other
-   * @returns {number} 0-1 similarity
+   * Measures spin alignment.
    */
   similarity(other) {
-    // Cosine similarity of weight vectors
-    let dotProduct = 0;
-    let normA = 0;
-    let normB = 0;
-    
-    for (const op of Object.keys(this.weights)) {
-      const a = this.weights[op];
-      const b = other.weights[op];
-      dotProduct += a * b;
-      normA += a * a;
-      normB += b * b;
-    }
-    
-    const denom = Math.sqrt(normA) * Math.sqrt(normB);
-    return denom > 0 ? dotProduct / denom : 0;
+    return this.spinPattern.similarity(other.spinPattern);
   }
 
   /**
@@ -140,9 +153,11 @@ export class OperatorPattern {
    */
   clone() {
     const copy = new OperatorPattern();
-    copy.weights = { ...this.weights };
+    copy.spinPattern = this.spinPattern.clone();
+    copy.spinVotes = { ...this.spinVotes };
     copy.sequence = [...this.sequence];
     copy.traceCount = this.traceCount;
+    copy.weights = { ...this.weights };
     return copy;
   }
 
@@ -151,7 +166,8 @@ export class OperatorPattern {
    */
   toJSON() {
     return {
-      weights: { ...this.weights },
+      spinPattern: this.spinPattern.getPatternString(),
+      spins: this.spinPattern.toJSON(),
       sequence: [...this.sequence],
       traceCount: this.traceCount,
       dominant: this.getDominantOperator()
