@@ -1,6 +1,9 @@
 // Chat: Chat Interface for ASI Agent Learning
 
 import { Occurrence } from '../core/occurrences.js';
+import { detectEmotionTeaching, emotionDetector } from '../cognitive/emergentEmotion.js';
+import { computeConnectorSignature, extractConnectorWord } from '../cognitive/emergentConnector.js';
+import { segmentIntoForms } from '../language/linguisticOccurrence.js';
 
 // ============================================================
 // ChatInterface - Connects chat UI to ASI agent learning
@@ -43,6 +46,16 @@ export class ChatInterface {
     this.sendButton.addEventListener('click', () => this._handleSend());
     this.input.addEventListener('keypress', (e) => {
       if (e.key === 'Enter') this._handleSend();
+    });
+    
+    // Bind command buttons
+    const buttons = document.querySelectorAll('.chat-btn[data-cmd]');
+    buttons.forEach(btn => {
+      btn.addEventListener('click', () => {
+        const cmd = btn.getAttribute('data-cmd');
+        this.input.value = cmd;
+        this._handleSend();
+      });
     });
   }
 
@@ -275,7 +288,84 @@ export class ChatInterface {
       this.symmetryDetector.recordChatEvent('user', concepts);
     }
     
-    // Teaching patterns
+    // === Control Commands ===
+    if (lowerText === '/show' || lowerText === '/graph') {
+      return this._handleShowGraph();
+    }
+    
+    if (lowerText === '/forget all') {
+      return this._handleForgetAll();
+    }
+    
+    if (lowerText.startsWith('/forget ')) {
+      const concept = text.slice(8).trim();
+      return this._handleForget(concept);
+    }
+    
+    if (lowerText === '/understood' || lowerText === '/status') {
+      return this._handleShowUnderstanding();
+    }
+    
+    if (lowerText === '/help') {
+      return this._handleHelp();
+    }
+    
+    if (lowerText === '/ask') {
+      return this._generateQuestion() || "I don't have any questions right now.";
+    }
+    
+    if (lowerText === '/emotions') {
+      return this._handleShowEmotions();
+    }
+    
+    if (lowerText === '/connectors' || lowerText === '/links') {
+      return this._handleShowConnectors();
+    }
+    
+    if (lowerText === '/lexicon' || lowerText === '/words') {
+      return this._handleShowLexicon();
+    }
+    
+    if (lowerText.startsWith('/similar ')) {
+      const word = text.slice(9).trim();
+      return this._handleFindSimilar(word);
+    }
+    
+    if (lowerText.startsWith('/word ')) {
+      const word = text.slice(6).trim();
+      return this._handleShowWord(word);
+    }
+    
+    if (lowerText === '/restructure') {
+      return this._handleRestructure();
+    }
+    
+    if (lowerText.startsWith('/trace ')) {
+      const concept = text.slice(7).trim();
+      return this._handleTrace(concept);
+    }
+    
+    if (lowerText.startsWith('/path ')) {
+      const parts = text.slice(6).trim().split(/\s+to\s+/i);
+      if (parts.length === 2) {
+        return this._handleFindPath(parts[0].trim(), parts[1].trim());
+      }
+      return "Usage: /path <concept1> to <concept2>";
+    }
+    
+    if (lowerText === '/symmetry') {
+      return this._handleSymmetryStats();
+    }
+    
+    // === Emotion Teaching (check before other patterns) ===
+    // Pass known emotions so detector can recognize them
+    const knownEmotions = new Set(this.agent.getLearnedEmotions());
+    const emotionWord = detectEmotionTeaching(text, knownEmotions);
+    if (emotionWord) {
+      return this._handleEmotionTeaching(emotionWord, text);
+    }
+    
+    // === Teaching patterns ===
     if (lowerText.includes(' is ') || lowerText.includes(' are ')) {
       return this._handleTeaching(text, concepts);
     }
@@ -296,8 +386,385 @@ export class ChatInterface {
       return this._handleExplicitLearn(text, concepts);
     }
     
+    // Process all text through language system (builds lexicon)
+    this.agent.processLanguage(text);
+    
     // Default: acknowledge and create occurrence
     return this._handleGeneral(text, concepts);
+  }
+
+  // === Control Command Handlers ===
+
+  /**
+   * Show current understanding (all learned concepts and relations).
+   */
+  _handleShowUnderstanding() {
+    const concepts = [...this.learnedConcepts.keys()];
+    if (concepts.length === 0) {
+      return "I haven't learned anything yet. Teach me something!";
+    }
+    
+    const lines = ["Here's what I understand:\n"];
+    
+    for (const concept of concepts) {
+      const related = this._getRelatedConcepts(concept);
+      if (related.length > 0) {
+        lines.push(`• "${concept}" → ${related.map(r => `"${r}"`).join(', ')}`);
+      } else {
+        lines.push(`• "${concept}" (isolated)`);
+      }
+    }
+    
+    const emotion = this.agent.evaluateEmotion();
+    lines.push(`\nEmotion: ${emotion.emotion} | Certainty: ${(1 - emotion.residual).toFixed(0)}%`);
+    
+    return lines.join('\n');
+  }
+
+  /**
+   * Show graph structure.
+   */
+  _handleShowGraph() {
+    const occCount = this.agent.graph.getAllOccurrences().length;
+    const relCount = this.agent.graph.getAllRelations().length;
+    const concepts = [...this.learnedConcepts.keys()];
+    
+    return `Graph Structure:\n• ${occCount} occurrences\n• ${relCount} relations\n• ${concepts.length} named concepts: ${concepts.slice(0, 10).join(', ')}${concepts.length > 10 ? '...' : ''}`;
+  }
+
+  /**
+   * Forget a specific concept.
+   */
+  _handleForget(concept) {
+    const lowerConcept = concept.toLowerCase();
+    
+    if (!this.learnedConcepts.has(lowerConcept)) {
+      return `I don't know about "${concept}".`;
+    }
+    
+    // Remove from learned concepts (occurrences remain in graph but untracked)
+    this.learnedConcepts.delete(lowerConcept);
+    
+    return `I've forgotten about "${concept}". It's still in my deep memory but I won't actively use it.`;
+  }
+
+  /**
+   * Forget all learned concepts.
+   */
+  _handleForgetAll() {
+    const count = this.learnedConcepts.size;
+    this.learnedConcepts.clear();
+    return `I've forgotten all ${count} named concepts. My graph structure remains but concepts are unmarked.`;
+  }
+
+  /**
+   * Show help for commands.
+   */
+  _handleHelp() {
+    return `Commands:
+/trace <X> - Walk back symmetry paths
+/path <X> to <Y> - Find transformation path
+/symmetry - Symmetry space stats
+/similar <X> - Find similar words
+/word <X> - Word operator pattern
+/lexicon - All learned words
+/emotions - Learned emotions
+/restructure - Reorganize patterns
+/help - This help
+
+Query examples:
+• /trace cat - How was "cat" learned?
+• /path cat to animal - What transforms cat→animal?
+
+Teaching: "X is Y", "X means Y"
+Emotions: "I feel X"`;
+  }
+
+  /**
+   * Handle emotion teaching.
+   * @param {string} emotionWord
+   * @param {string} originalText - Original message for pattern reinforcement
+   */
+  _handleEmotionTeaching(emotionWord, originalText = '') {
+    // Learn the emotion from current state
+    this.agent.learnEmotion(emotionWord);
+    
+    // Reinforce the detection pattern
+    if (originalText) {
+      emotionDetector.reinforce(originalText, emotionWord);
+    }
+    
+    // Record as symmetry event
+    if (this.symmetryDetector) {
+      this.symmetryDetector.recordLearningEvent('emotion', [`emotion:${emotionWord}`]);
+    }
+    
+    const learnedCount = this.agent.getLearnedEmotions().length;
+    const evalResult = this.agent.evaluateEmotion();
+    
+    // Show channel ratios (first 6 values are channel activations)
+    const channelRatios = evalResult.signature.slice(0, 6);
+    const channels = ['u', 'd', 's', 'c', 't', 'b'];
+    const channelStr = channels.map((c, i) => `${c}:${(channelRatios[i] * 100).toFixed(0)}%`).join(' ');
+    
+    return `Learned "${emotionWord}" from waveform pattern.\nChannels: ${channelStr}\nKnown emotions: ${this.agent.getLearnedEmotions().join(', ')}`;
+  }
+
+  /**
+   * Show learned emotions.
+   */
+  _handleShowEmotions() {
+    const emotions = this.agent.getLearnedEmotions();
+    
+    if (emotions.length === 0) {
+      return "I haven't learned any emotions yet.\nTeach me by saying things like:\n• \"I feel happy\"\n• \"this is excitement\"\n• \"feeling curious\"";
+    }
+    
+    const current = this.agent.evaluateEmotion();
+    const lines = ["Learned emotions:"];
+    
+    for (const emotion of emotions) {
+      const isCurrent = current.emotion === emotion;
+      lines.push(`• ${emotion}${isCurrent ? ' ← (current, similarity: ' + current.similarity.toFixed(2) + ')' : ''}`);
+    }
+    
+    if (!current.emotion) {
+      lines.push("\nCurrent state doesn't match any learned emotion.");
+    }
+    
+    return lines.join('\n');
+  }
+
+  /**
+   * Show learned connectors.
+   */
+  _handleShowConnectors() {
+    const connectors = this.agent.connectorField.getLearnedConnectors();
+    
+    if (connectors.length === 0) {
+      return "I haven't learned any connector types yet.\nConnectors emerge when you teach me relations like:\n• \"cats are animals\"\n• \"love means caring\"";
+    }
+    
+    const lines = ["Learned connector types:"];
+    
+    for (const connector of connectors) {
+      const examples = this.agent.connectorField.getExamples(connector);
+      const exampleText = examples.length > 0 ? ` (e.g., "${examples[0].slice(0, 30)}...")` : '';
+      lines.push(`• ${connector}${exampleText}`);
+    }
+    
+    lines.push(`\nTotal: ${connectors.length} connector type(s)`);
+    
+    return lines.join('\n');
+  }
+
+  /**
+   * Show lexicon statistics.
+   */
+  _handleShowLexicon() {
+    const stats = this.agent.getLexiconStats();
+    
+    if (stats.totalLexemes === 0) {
+      return "I haven't learned any words yet.\nWords emerge as operator patterns when you chat with me.";
+    }
+    
+    const lines = [
+      `Lexicon: ${stats.totalLexemes} words (${stats.groundedLexemes} grounded)`,
+      "",
+      "By semantic role:"
+    ];
+    
+    for (const [role, count] of Object.entries(stats.bySemanticRole)) {
+      lines.push(`  • ${role}: ${count}`);
+    }
+    
+    if (stats.topLexemes.length > 0) {
+      lines.push("", "Top words:");
+      for (const { form, count, role } of stats.topLexemes.slice(0, 5)) {
+        lines.push(`  • "${form}" (${count}x, ${role})`);
+      }
+    }
+    
+    return lines.join('\n');
+  }
+
+  /**
+   * Find words similar to a given word.
+   */
+  _handleFindSimilar(word) {
+    const similar = this.agent.findSimilarWords(word);
+    
+    if (similar.length === 0) {
+      const lexeme = this.agent.getLexeme(word);
+      if (!lexeme) {
+        return `I don't know the word "${word}" yet.`;
+      }
+      return `No similar words found for "${word}".`;
+    }
+    
+    const lines = [`Words similar to "${word}":`];
+    
+    for (const { word: w, similarity, operatorSimilarity } of similar.slice(0, 5)) {
+      const pct = (similarity * 100).toFixed(0);
+      const opPct = (operatorSimilarity * 100).toFixed(0);
+      lines.push(`  • "${w}" (${pct}% total, ${opPct}% operator)`);
+    }
+    
+    return lines.join('\n');
+  }
+
+  /**
+   * Trace back symmetry paths for a concept.
+   */
+  _handleTrace(concept) {
+    const walkback = this.agent.walkBackSymmetry(concept);
+    
+    if (!walkback.canReproduce) {
+      // Also try to find similar concepts
+      const similar = this.agent.findSimilarBySymmetry(concept);
+      
+      if (similar.length === 0) {
+        return `No symmetry path found for "${concept}".\nTry teaching more relationships involving this concept.`;
+      }
+      
+      const lines = [`No direct path for "${concept}", but found similar patterns:`];
+      for (const s of similar.slice(0, 3)) {
+        lines.push(`  • "${s.concept}" via ${s.matchingPath} (${(s.similarity * 100).toFixed(0)}%)`);
+      }
+      return lines.join('\n');
+    }
+    
+    const lines = [
+      `Symmetry trace for "${concept}":`,
+      `  Depth: ${walkback.depth} transformation(s)`,
+      ""
+    ];
+    
+    for (let i = 0; i < walkback.chain.length; i++) {
+      const step = walkback.chain[i];
+      lines.push(`  ${i + 1}. ${step.from} → ${step.to}`);
+      lines.push(`     Operators: ${step.operators}`);
+      lines.push(`     Inverse: ${step.inverse}`);
+    }
+    
+    return lines.join('\n');
+  }
+
+  /**
+   * Find transformation path between two concepts.
+   */
+  _handleFindPath(from, to) {
+    const path = this.agent.findSymmetryPath(from, to);
+    
+    if (!path) {
+      return `No transformation path found from "${from}" to "${to}".\nThey may not be connected in the symmetry space yet.`;
+    }
+    
+    const lines = [
+      `Path: "${from}" → "${to}"`,
+      `  Sequence: ${path.sequence}`,
+      `  Steps: ${path.steps.length}`
+    ];
+    
+    // Show each step
+    for (let i = 0; i < Math.min(path.steps.length, 5); i++) {
+      lines.push(`    ${i + 1}. ${path.steps[i].operator}`);
+    }
+    
+    if (path.steps.length > 5) {
+      lines.push(`    ... and ${path.steps.length - 5} more`);
+    }
+    
+    return lines.join('\n');
+  }
+
+  /**
+   * Show symmetry space statistics.
+   */
+  _handleSymmetryStats() {
+    const stats = this.agent.getSymmetryStats();
+    
+    if (stats.totalPaths === 0) {
+      return "No symmetry paths recorded yet.\nTeach me relationships to build the symmetry space.";
+    }
+    
+    const lines = [
+      "Symmetry Space:",
+      `  Paths: ${stats.totalPaths}`,
+      `  Total steps: ${stats.totalSteps}`,
+      `  History: ${stats.historyLength} transformations`,
+      "",
+      "Operator distribution:"
+    ];
+    
+    for (const [op, count] of Object.entries(stats.operatorDistribution)) {
+      const bar = '█'.repeat(Math.min(10, Math.round(count / stats.totalSteps * 20)));
+      lines.push(`  ${op}: ${bar} ${count}`);
+    }
+    
+    return lines.join('\n');
+  }
+
+  /**
+   * Handle restructuring of learned patterns.
+   */
+  _handleRestructure() {
+    // Restructure emotions
+    const emotionResult = this.agent.emotionField.restructure();
+    
+    // Restructure lexicon (if available)
+    let lexiconResult = { restructured: false };
+    if (this.agent.lexicon && this.agent.lexicon.restructure) {
+      lexiconResult = this.agent.lexicon.restructure();
+    }
+    
+    const lines = ["Restructuring learned patterns..."];
+    
+    if (emotionResult.restructured) {
+      lines.push(`✓ Emotions: ${emotionResult.patternCount} pattern(s) after restructure`);
+    } else {
+      lines.push(`○ Emotions: ${emotionResult.reason || 'no change needed'}`);
+    }
+    
+    if (lexiconResult.restructured) {
+      lines.push(`✓ Lexicon: restructured`);
+    }
+    
+    lines.push("", "Symmetries reorganized based on current understanding.");
+    
+    return lines.join('\n');
+  }
+
+  /**
+   * Show details about a specific word.
+   */
+  _handleShowWord(word) {
+    const lexeme = this.agent.getLexeme(word);
+    
+    if (!lexeme) {
+      return `I don't know the word "${word}" yet. Use it in a sentence to teach me.`;
+    }
+    
+    const lines = [
+      `Word: "${lexeme.canonicalForm}"`,
+      `  Role: ${lexeme.semanticRole}`,
+      `  Occurrences: ${lexeme.occurrenceCount}`,
+      `  Grounded: ${lexeme.isGrounded ? 'yes' : 'no'} (${(lexeme.groundingConfidence * 100).toFixed(0)}%)`,
+      "",
+      "Operator pattern:"
+    ];
+    
+    const weights = lexeme.operatorPattern.weights;
+    const sortedOps = Object.entries(weights)
+      .filter(([_, w]) => w > 0.05)
+      .sort((a, b) => b[1] - a[1]);
+    
+    for (const [op, weight] of sortedOps) {
+      const bar = '█'.repeat(Math.round(weight * 10));
+      lines.push(`  ${op}: ${bar} ${(weight * 100).toFixed(0)}%`);
+    }
+    
+    return lines.join('\n');
   }
 
   /**
@@ -337,16 +804,60 @@ export class ChatInterface {
   _handleTeaching(text, concepts) {
     const occIds = this._createOccurrencesForConcepts(concepts, 'teaching');
     
-    // Create relations between concepts
+    // Create relations between concepts using emergent connectors
+    const connectorResults = [];
     if (concepts.length >= 2) {
       for (let i = 0; i < concepts.length - 1; i++) {
-        this._createRelation(concepts[i], concepts[i + 1], 'is-a');
+        const result = this._createRelation(concepts[i], concepts[i + 1], text);
+        if (result) {
+          connectorResults.push(result);
+          
+          // Record transformation in symmetry query engine
+          this._recordSymmetryTransformation(concepts[i], concepts[i + 1], result);
+        }
       }
     }
     
     this._notifyLearning(concepts, 'teaching');
     
-    return `I understand. I've learned that ${concepts.join(' relates to ')}. This creates ${occIds.length} new connections in my understanding.`;
+    // Show what connector type was learned/used
+    const connectorInfo = connectorResults.length > 0 
+      ? `\nConnector: "${connectorResults[0].label}" (${connectorResults[0].isNew ? 'new' : 'known'})`
+      : '';
+    
+    return `I understand. I've learned that ${concepts.join(' → ')}.${connectorInfo}`;
+  }
+  
+  /**
+   * Record a transformation in the symmetry query engine.
+   */
+  _recordSymmetryTransformation(from, to, connectorResult) {
+    if (!this.agent.symmetryQuery) return;
+    
+    // Build operator trace from connector result
+    const operatorTrace = [];
+    
+    // Infer operators from connector label
+    const label = connectorResult.label?.toLowerCase() || '';
+    
+    if (label.includes('is') || label.includes('are')) {
+      operatorTrace.push({ type: 'up' });      // Assertion
+      operatorTrace.push({ type: 'charm' });   // Abstraction (is-a relation)
+    } else if (label.includes('means') || label.includes('represents')) {
+      operatorTrace.push({ type: 'charm' });   // Abstraction
+      operatorTrace.push({ type: 'strange' }); // Context mapping
+    } else if (label.includes('has') || label.includes('have')) {
+      operatorTrace.push({ type: 'up' });      // Assertion
+      operatorTrace.push({ type: 'bottom' });  // Grounding (possession)
+    } else if (label.includes('not') || label.includes('no')) {
+      operatorTrace.push({ type: 'down' });    // Negation
+    } else {
+      // Default: assertion + context
+      operatorTrace.push({ type: 'up' });
+      operatorTrace.push({ type: 'strange' });
+    }
+    
+    this.agent.symmetryQuery.recordTransformation(from, to, operatorTrace);
   }
 
   /**
@@ -355,13 +866,23 @@ export class ChatInterface {
   _handleDefinition(text, concepts) {
     const occIds = this._createOccurrencesForConcepts(concepts, 'definition');
     
+    let connectorResult = null;
     if (concepts.length >= 2) {
-      this._createRelation(concepts[0], concepts[concepts.length - 1], 'means');
+      connectorResult = this._createRelation(concepts[0], concepts[concepts.length - 1], text);
+      
+      // Record transformation
+      if (connectorResult) {
+        this._recordSymmetryTransformation(concepts[0], concepts[concepts.length - 1], connectorResult);
+      }
     }
     
     this._notifyLearning(concepts, 'definition');
     
-    return `Definition recorded. "${concepts[0]}" is now associated with "${concepts.slice(1).join(', ')}".`;
+    const connectorInfo = connectorResult 
+      ? ` [${connectorResult.label}]`
+      : '';
+    
+    return `Definition recorded. "${concepts[0]}"${connectorInfo} → "${concepts.slice(1).join(', ')}".`;
   }
 
   /**
@@ -399,13 +920,23 @@ export class ChatInterface {
     
     this._createOccurrencesForConcepts(concepts, 'relation');
     
+    const connectorResults = [];
     for (let i = 0; i < concepts.length - 1; i++) {
-      this._createRelation(concepts[i], concepts[i + 1], 'relates-to');
+      const result = this._createRelation(concepts[i], concepts[i + 1], text);
+      if (result) {
+        connectorResults.push(result);
+        // Record transformation
+        this._recordSymmetryTransformation(concepts[i], concepts[i + 1], result);
+      }
     }
     
     this._notifyLearning(concepts, 'relation');
     
-    return `Relation established: ${concepts.join(' ↔ ')}. My graph now has ${this.agent.graph.getAllRelations().length} connections.`;
+    const connectorInfo = connectorResults.length > 0
+      ? ` via "${connectorResults[0].label}"`
+      : '';
+    
+    return `Relation established: ${concepts.join(' ↔ ')}${connectorInfo}. Graph has ${this.agent.graph.getAllRelations().length} connections.`;
   }
 
   /**
@@ -466,12 +997,12 @@ export class ChatInterface {
   }
 
   /**
-   * Create a relation between two concepts.
+   * Create a relation between two concepts using emergent connector system.
    * @param {string} from
    * @param {string} to
-   * @param {string} relationType
+   * @param {string} sentence - Original sentence for context
    */
-  _createRelation(from, to, relationType) {
+  _createRelation(from, to, sentence = '') {
     const fromIds = this.learnedConcepts.get(from);
     const toIds = this.learnedConcepts.get(to);
     
@@ -479,12 +1010,42 @@ export class ChatInterface {
       const fromId = fromIds[fromIds.length - 1];
       const toId = toIds[toIds.length - 1];
       
+      // Compute connector signature from context
+      const context = {
+        fromConcept: from,
+        toConcept: to,
+        sentence: sentence,
+        surroundingWords: []
+      };
+      const signature = computeConnectorSignature(context, this.agent);
+      
+      // Extract connector word from sentence as fallback
+      const connectorWord = extractConnectorWord(sentence, from, to);
+      
+      // Infer or learn connector type
+      const connectorResult = this.agent.connectorField.infer(signature, connectorWord);
+      
+      // If this is a new connector type, learn it
+      if (connectorResult.isNew && connectorWord) {
+        this.agent.connectorField.learn(connectorResult.label, signature, sentence);
+      } else if (!connectorResult.isNew) {
+        // Reinforce existing connector with this example
+        this.agent.connectorField.learn(connectorResult.label, signature, sentence);
+      }
+      
       try {
-        this.agent.graph.addRelation(fromId, toId, 1.0, { type: relationType });
+        this.agent.graph.addRelation(fromId, toId, 1.0, { 
+          connector: connectorResult.label,
+          similarity: connectorResult.similarity,
+          isNew: connectorResult.isNew
+        });
       } catch (e) {
         // Ignore duplicate or self-reference errors
       }
+      
+      return connectorResult;
     }
+    return null;
   }
 
   /**
@@ -497,10 +1058,11 @@ export class ChatInterface {
     const conceptIds = this.learnedConcepts.get(concept) || [];
     
     for (const occId of conceptIds) {
-      const relations = this.agent.graph.getRelationsFrom(occId);
+      // Use getOutgoing (correct API method)
+      const relations = this.agent.graph.getOutgoing(occId);
       for (const rel of relations) {
-        // Extract concept from occurrence ID
-        const match = rel.targetId.match(/^concept:([^:]+):/);
+        // Extract concept from occurrence ID (rel.to is the target)
+        const match = rel.to.match(/^concept:([^:]+):/);
         if (match && match[1] !== concept) {
           related.add(match[1]);
         }

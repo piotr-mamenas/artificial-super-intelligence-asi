@@ -5,8 +5,12 @@ import { StateSpace, buildStateSpaceFromGraph } from '../core/states.js';
 import { ContextSystem, buildDefaultContexts } from '../core/contexts.js';
 import { ScaleSystem, buildSingleScaleSystem } from '../core/scales.js';
 import { PotentialSpace, AttentionState, ConsensusWorld } from '../cognitive/xyzBubbles.js';
-import { ValueField, EmotionEstimator, estimateLocalValueStats } from '../cognitive/valueEmotion.js';
+import { ValueField } from '../cognitive/valueEmotion.js';
 import { SelfModel } from '../cognitive/selfModel.js';
+import { EmergentEmotionField, computeStateSignature } from '../cognitive/emergentEmotion.js';
+import { EmergentConnectorField } from '../cognitive/emergentConnector.js';
+import { Lexicon } from '../language/lexicon.js';
+import { SymmetryQueryEngine } from '../language/symmetryQuery.js';
 import { MultiChannelWaveform, CHANNELS } from '../math/channels.js';
 import { Waveform, cAbsSq } from '../math/waveforms.js';
 
@@ -58,9 +62,16 @@ export class Agent {
       { agentId: this.id }
     );
 
-    // Value and emotion
+    // Value and emotion (emergent, not hardcoded)
     this.valueField = new ValueField();
-    this.emotionEstimator = new EmotionEstimator();
+    this.emotionField = new EmergentEmotionField();
+    this.connectorField = new EmergentConnectorField();
+
+    // Language (emergent lexicon)
+    this.lexicon = new Lexicon();
+    
+    // Symmetry query engine for walking inversion paths
+    this.symmetryQuery = new SymmetryQueryEngine(this);
 
     // Self-model
     this.selfModel = new SelfModel();
@@ -114,9 +125,13 @@ export class Agent {
 
   /**
    * Evaluate the agent's current emotional state.
-   * @returns {{ emotion: string, residual: number, anchorStateId: string | null }}
+   * Uses emergent emotion system - emotions are learned, not hardcoded.
+   * @returns {{ emotion: string|null, residual: number, anchorStateId: string|null, signature: number[] }}
    */
   evaluateEmotion() {
+    // Compute state signature for emotion inference
+    const signature = computeStateSignature(this);
+    
     // Find anchor state: state with max amplitude across channels
     let maxAmpSq = 0;
     let anchorStateId = null;
@@ -133,52 +148,149 @@ export class Agent {
       }
     }
 
-    if (!anchorStateId) {
-      return { emotion: "neutral", residual: 0, anchorStateId: null };
-    }
-
-    // Get neighbors (other states in the state space)
-    const allStates = this.stateSpace.getAllStates().map(s => s.id);
-    const neighbors = allStates.filter(id => id !== anchorStateId).slice(0, 10);
-
-    // Compute local value stats
-    const anchorStats = estimateLocalValueStats(
-      this.valueField,
-      this.stateSpace,
-      anchorStateId,
-      neighbors
-    );
-
-    // Estimate uncertainty from amplitude spread
-    let totalAmpSq = 0;
-    let ampCount = 0;
-    for (const [, wf] of Object.entries(waveform.channels)) {
-      for (const id of wf.keys()) {
-        totalAmpSq += cAbsSq(wf.get(id));
-        ampCount++;
-      }
-    }
-    const avgAmpSq = ampCount > 0 ? totalAmpSq / ampCount : 0;
-    const uncertainty = Math.min(1, avgAmpSq * ampCount * 0.1); // Heuristic
-
-    // Estimate reachability (fraction of high-value states reachable)
-    const highValueStates = allStates.filter(id => this.valueField.getValue(id) > 0.5);
-    const reachability = highValueStates.length > 0
-      ? highValueStates.filter(id => neighbors.includes(id) || id === anchorStateId).length / highValueStates.length
-      : 0.5;
-
-    // Infer emotion
-    const emotion = this.emotionEstimator.inferEmotion({
-      anchorStats,
-      reachability,
-      uncertainty
-    });
+    // Infer emotion from learned patterns
+    const emotionResult = this.emotionField.infer(signature);
 
     // Compute self-model residual
     const description = this.selfModel.describeAttentionState(this.attentionState);
     const residual = this.selfModel.computeResidual(this.attentionState, description);
 
-    return { emotion, residual, anchorStateId };
+    return {
+      emotion: emotionResult.label,
+      similarity: emotionResult.similarity,
+      residual,
+      anchorStateId,
+      signature
+    };
+  }
+
+  /**
+   * Learn an emotion from current state.
+   * @param {string} emotionLabel - The emotion word to associate
+   */
+  learnEmotion(emotionLabel) {
+    const signature = computeStateSignature(this);
+    this.emotionField.learn(emotionLabel, signature);
+  }
+
+  /**
+   * Get all learned emotions.
+   * @returns {string[]}
+   */
+  getLearnedEmotions() {
+    return this.emotionField.getLearnedEmotions();
+  }
+
+  /**
+   * Process linguistic input through the lexicon.
+   * Words become operator patterns that transform the waveform.
+   * @param {string} text - Input text
+   * @returns {object} Processing result with lexemes and transformation
+   */
+  processLanguage(text) {
+    return this.lexicon.processInput(text, this);
+  }
+
+  /**
+   * Apply a sentence as a sequence of lexeme operators.
+   * @param {string} sentence
+   * @returns {object} Sentence processing result
+   */
+  applySentence(sentence) {
+    const forms = sentence.toLowerCase().split(/\s+/).filter(f => f.length > 0);
+    return this.lexicon.applySentence(forms, this);
+  }
+
+  /**
+   * Get lexeme for a word.
+   * @param {string} word
+   * @returns {object|null}
+   */
+  getLexeme(word) {
+    const lexeme = this.lexicon.getLexemeForForm(word);
+    return lexeme ? lexeme.toJSON() : null;
+  }
+
+  /**
+   * Find words similar to a given word (by operator pattern).
+   * @param {string} word
+   * @returns {Array}
+   */
+  findSimilarWords(word) {
+    const lexeme = this.lexicon.getLexemeForForm(word);
+    if (!lexeme) return [];
+    
+    return this.lexicon.findSimilarLexemes(lexeme, 0.4)
+      .map(({ lexeme: l, similarity }) => ({
+        word: l.canonicalForm,
+        similarity: similarity.total,
+        operatorSimilarity: similarity.operator,
+        groundingSimilarity: similarity.grounding
+      }));
+  }
+
+  /**
+   * Get lexicon statistics.
+   * @returns {object}
+   */
+  getLexiconStats() {
+    return this.lexicon.getStatistics();
+  }
+
+  /**
+   * Walk back through symmetry paths for a concept.
+   * @param {string} concept
+   * @param {number} [maxSteps=10]
+   * @returns {object}
+   */
+  walkBackSymmetry(concept, maxSteps = 10) {
+    return this.symmetryQuery.walkBack(concept, maxSteps);
+  }
+
+  /**
+   * Find concepts similar by operator pattern.
+   * @param {string} concept
+   * @returns {Array}
+   */
+  findSimilarBySymmetry(concept) {
+    return this.symmetryQuery.findSimilarByOperator(concept);
+  }
+
+  /**
+   * Find transformation path between two concepts.
+   * @param {string} from
+   * @param {string} to
+   * @returns {object|null}
+   */
+  findSymmetryPath(from, to) {
+    const path = this.symmetryQuery.findPath(from, to);
+    return path ? path.toJSON() : null;
+  }
+
+  /**
+   * Try to reproduce how a concept was learned.
+   * @param {string} concept
+   * @returns {object}
+   */
+  reproduceSymmetry(concept) {
+    return this.symmetryQuery.reproduce(concept, this);
+  }
+
+  /**
+   * Query by operator signature.
+   * @param {string[]} operators
+   * @returns {Array}
+   */
+  queryByOperators(operators) {
+    return this.symmetryQuery.queryByOperatorSignature(operators);
+  }
+
+  /**
+   * Get symmetry space statistics.
+   * @returns {object}
+   */
+  getSymmetryStats() {
+    return this.symmetryQuery.getStatistics();
   }
 
   /**
@@ -217,6 +329,8 @@ export class Agent {
       waveform: waveformSummary,
       valueField: this.valueField.toJSON(),
       emotion: emotionResult.emotion,
+      emotionSimilarity: emotionResult.similarity,
+      learnedEmotions: this.getLearnedEmotions(),
       residual: emotionResult.residual,
       anchorStateId: emotionResult.anchorStateId,
       currentScaleId: this.attentionState.currentScaleId,

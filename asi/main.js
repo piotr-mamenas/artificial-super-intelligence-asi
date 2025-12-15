@@ -29,7 +29,12 @@ function updateStats(agent, symmetryTracker) {
   document.getElementById('stat-occurrences').textContent = snapshot.graph.occurrenceCount;
   document.getElementById('stat-relations').textContent = snapshot.graph.relationCount;
   document.getElementById('stat-symmetries').textContent = symmetryTracker.events.length;
-  document.getElementById('stat-emotion').textContent = snapshot.emotion;
+  
+  // Emotion is now emergent - show learned emotion or "not learned"
+  const emotionDisplay = snapshot.emotion 
+    ? `${snapshot.emotion} (${(snapshot.emotionSimilarity * 100).toFixed(0)}%)`
+    : (snapshot.learnedEmotions.length > 0 ? 'unknown' : 'teach me');
+  document.getElementById('stat-emotion').textContent = emotionDisplay;
 }
 
 // ============================================================

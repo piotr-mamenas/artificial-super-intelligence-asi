@@ -37,6 +37,14 @@ export class ValueField {
   }
 
   /**
+   * Get all values as an array.
+   * @returns {number[]}
+   */
+  getAllValues() {
+    return [...this.values.values()];
+  }
+
+  /**
    * Serialize to plain object.
    * @returns {object}
    */

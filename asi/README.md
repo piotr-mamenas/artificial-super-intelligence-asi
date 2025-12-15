@@ -197,6 +197,43 @@ const results = loop.run();
 console.log(agent.toSnapshot());
 ```
 
+## Chat Interface
+
+The agent includes an interactive chat for teaching and querying.
+
+### Buttons
+| Button | Action |
+|--------|--------|
+| 🤔 Ask Me | Trigger agent to ask a question |
+| 📋 What I Know | Show learned concepts |
+| 📊 Graph | Show graph statistics |
+| ❓ Help | Show all commands |
+| 🗑️ Clear | Forget all concepts |
+
+### Commands
+```
+/ask            - Make agent ask a question
+/understood     - Show learned concepts and relations
+/show           - Show graph structure
+/forget <word>  - Forget a specific concept
+/forget all     - Forget everything
+/help           - Show help
+```
+
+### Teaching Patterns
+```
+"cats are animals"      → Creates relation: cats → animals
+"love means caring"     → Defines: love = caring
+"music relates to art"  → Connects: music ↔ art
+"what is love"          → Queries agent's knowledge
+```
+
+### Proactive Questioning
+The agent asks questions based on:
+- **Curiosity** — When emotion state is curious
+- **Uncertainty** — When self-model residual is high
+- **Knowledge gaps** — When concepts lack relations
+
 ## Key Design Principles
 
 1. **Aboutness-First** — All meaning emerges from "is-about" relations
