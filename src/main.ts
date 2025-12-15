@@ -1,284 +1,246 @@
 /**
- * ASI - Symmetry Inversion Based Artificial Super-Intelligence
- * 
- * Phase-space foundation with S¹ duality (space = inverse of time).
- * Learning through hadron reinforcement. No LLMs.
+ * ASI - Artificial Super Intelligence
+ * Main entry point with QFT-Structured Reasoning demonstration
  */
 
-import { createPhaseChatSession, createChatUI, PhaseChatSession } from './core/asi/chat';
 import {
-  createPhaseEngine,
-  stepPhaseEngine,
-  processTextInput,
-  attemptFullInversion,
-  getPhaseEngineStats,
-  PhaseEngineState,
-} from './core/asi/phase-engine';
-import {
-  createPhaseScene,
-  updateHadrons,
-  animateScene,
-  resizeScene,
-  PhaseSceneState,
-} from './viz/phase-viz';
+  // World & Engine
+  createWorldState, addProposition, addGate, runReasoning,
+  WorldState, worldSummary, getProbYes,
+  
+  // Propositions
+  propYes, propNo, propUncertain,
+  
+  // Hadrons
+  proton, neutron,
+  
+  // Gates
+  ifThenGate, soGate,
+  
+  // Metrics
+  computeWorldMetrics, computeSpatialMetrics,
+} from './reasoning';
 
-// ============================================
-// STATE
-// ============================================
+// ============================================================
+// Demo: Simple Reasoning Scenario
+// ============================================================
 
-interface AppState {
-  isRunning: boolean;
-  tickInterval: number | null;
-  tick: number;
-  // Phase engine stats
-  hadronCount: number;
-  stableHadronCount: number;
-  blackHoleCount: number;
-  successRate: number;
-  dominantTimeQuark: 'up' | 'down';
-  dominantSpaceQuark: 'charm' | 'strange';
-  // Emotion (RGBI)
-  emotionR: number;
-  emotionG: number;
-  emotionB: number;
-  emotionI: number;
-  // Session
-  chatSession: PhaseChatSession | null;
-  phaseEngine: PhaseEngineState | null;
+function createDemoWorld(): WorldState {
+  let world = createWorldState(1e-6, 50);
+  
+  // Create propositions as baryons (protons at different positions)
+  // "It is raining" - initially YES (certain)
+  world = addProposition(world, propYes('rain', proton(0)));
+  
+  // "I have an umbrella" - initially NO
+  world = addProposition(world, propNo('umbrella', proton(1)));
+  
+  // "I will get wet" - uncertain
+  world = addProposition(world, propUncertain('wet', proton(2)));
+  
+  // "The ground is slippery" - uncertain
+  world = addProposition(world, propUncertain('slippery', neutron(0)));
+  
+  // Add reasoning gates
+  // IF rain THEN wet (if it's raining, I'll get wet)
+  world = addGate(world, ifThenGate('rain', 'wet', [1, 0, 0], Math.PI * 0.8));
+  
+  // IF umbrella THEN NOT wet (having umbrella prevents getting wet)
+  world = addGate(world, ifThenGate('umbrella', 'wet', [1, 0, 0], -Math.PI * 0.6));
+  
+  // IF rain THEN slippery (rain makes ground slippery)
+  world = addGate(world, ifThenGate('rain', 'slippery', [1, 0, 0], Math.PI * 0.7));
+  
+  // Record observations
+  world = addGate(world, soGate('wet'));
+  world = addGate(world, soGate('slippery'));
+  
+  return world;
 }
 
-const state: AppState = {
-  isRunning: false,
-  tickInterval: null,
-  tick: 0,
-  hadronCount: 0,
-  stableHadronCount: 0,
-  blackHoleCount: 0,
-  successRate: 0,
-  dominantTimeQuark: 'up',
-  dominantSpaceQuark: 'charm',
-  emotionR: 0,
-  emotionG: 0,
-  emotionB: 0,
-  emotionI: 0,
-  chatSession: null,
-  phaseEngine: null,
+// ============================================================
+// UI State
+// ============================================================
+
+interface UIState {
+  world: WorldState;
+  running: boolean;
+  intervalId: number | null;
+}
+
+const state: UIState = {
+  world: createDemoWorld(),
+  running: false,
+  intervalId: null,
 };
 
-// Phase engine and visualization
-let phaseEngine: PhaseEngineState;
-let sceneState: PhaseSceneState;
+// ============================================================
+// UI Update Functions
+// ============================================================
 
-// ============================================
-// INITIALIZATION
-// ============================================
-
-function initEngines() {
-  // Phase engine - starts from pure nothingness
-  phaseEngine = createPhaseEngine();
-  state.phaseEngine = phaseEngine;
+function updateUI(): void {
+  const world = state.world;
   
-  console.log('Phase engine initialized from nothingness');
+  // Update logical time
+  const timeEl = document.getElementById('logical-time');
+  if (timeEl) timeEl.textContent = world.logicalTime.toString();
+  
+  // Update proposition probabilities (mapped to RGB bars)
+  updatePropBar('rain', 'r-bar');
+  updatePropBar('umbrella', 'g-bar');
+  updatePropBar('wet', 'b-bar');
+  
+  // Update hadron count
+  const hadronEl = document.getElementById('hadron-count');
+  if (hadronEl) {
+    const total = world.props.size;
+    const stable = Array.from(world.props.values()).filter(p => {
+      const py = getProbYes(world, p.id) ?? 0.5;
+      return py > 0.9 || py < 0.1;
+    }).length;
+    hadronEl.textContent = `${total} (${stable})`;
+  }
+  
+  // Update metrics
+  const metrics = computeWorldMetrics(world);
+  const spatial = computeSpatialMetrics(world);
+  
+  // Wave amplitude (average belief strength)
+  const waveEl = document.getElementById('wave-amplitude');
+  if (waveEl) {
+    let totalStrength = 0;
+    for (const m of metrics.values()) {
+      totalStrength += m.beliefStrength;
+    }
+    const avgStrength = metrics.size > 0 ? totalStrength / metrics.size : 0;
+    waveEl.textContent = avgStrength.toFixed(3);
+  }
+  
+  // Consensus level (coherence)
+  const consensusEl = document.getElementById('consensus-level');
+  if (consensusEl) {
+    consensusEl.textContent = `${(spatial.coherence * 100).toFixed(0)}%`;
+  }
+  
+  // Observer count
+  const observerEl = document.getElementById('observer-count');
+  if (observerEl) {
+    observerEl.textContent = world.props.size.toString();
+  }
+  
+  // Training accuracy (placeholder - based on stable props)
+  const accuracyEl = document.getElementById('training-accuracy');
+  if (accuracyEl) {
+    const stableRatio = world.props.size > 0 
+      ? Array.from(world.props.values()).filter(p => {
+          const py = getProbYes(world, p.id) ?? 0.5;
+          return py > 0.8 || py < 0.2;
+        }).length / world.props.size
+      : 0;
+    accuracyEl.textContent = `${(stableRatio * 100).toFixed(0)}%`;
+  }
+  
+  // Update explanation
+  updateExplanation();
 }
 
-// ============================================
-// SIMULATION TICK
-// ============================================
+function updatePropBar(propId: string, barId: string): void {
+  const bar = document.getElementById(barId);
+  if (!bar) return;
+  
+  const py = getProbYes(state.world, propId);
+  if (py !== undefined) {
+    bar.style.width = `${py * 100}%`;
+  }
+}
 
-function simulationTick() {
-  state.tick++;
+function updateExplanation(): void {
+  const el = document.getElementById('explanation');
+  if (!el) return;
   
-  console.log(`\n=== TICK ${state.tick} ====================`);
+  const world = state.world;
+  const lines: string[] = [];
   
-  // 1. Generate random token - NO SEMANTIC MEANING ASSUMED
-  // Just random characters - meaning emerges through inversion dynamics
-  const tokenLength = 3 + Math.floor(Math.random() * 5);
-  const chars = 'abcdefghijklmnopqrstuvwxyz';
-  let randomToken = '';
-  for (let i = 0; i < tokenLength; i++) {
-    randomToken += chars[Math.floor(Math.random() * chars.length)];
+  for (const [id, _prop] of world.props) {
+    const py = getProbYes(world, id) ?? 0.5;
+    let status: string;
+    if (py > 0.9) status = 'TRUE';
+    else if (py > 0.6) status = 'likely';
+    else if (py > 0.4) status = 'uncertain';
+    else if (py > 0.1) status = 'unlikely';
+    else status = 'FALSE';
+    
+    lines.push(`${id}: ${(py * 100).toFixed(1)}% (${status})`);
   }
   
-  console.log(`Processing token: "${randomToken}" (no predefined meaning)`);
+  el.textContent = lines.join('\n');
+}
+
+// ============================================================
+// Control Functions
+// ============================================================
+
+function tick(): void {
+  state.world = runReasoning(state.world, 1);
+  updateUI();
+  console.log(worldSummary(state.world));
+}
+
+function startRunning(): void {
+  if (state.running) return;
+  state.running = true;
+  state.intervalId = window.setInterval(tick, 500);
+}
+
+function stopRunning(): void {
+  if (!state.running) return;
+  state.running = false;
+  if (state.intervalId !== null) {
+    window.clearInterval(state.intervalId);
+    state.intervalId = null;
+  }
+}
+
+function reset(): void {
+  stopRunning();
+  state.world = createDemoWorld();
+  updateUI();
+}
+
+// ============================================================
+// Initialization
+// ============================================================
+
+function init(): void {
+  // Set up button handlers
+  const tickBtn = document.getElementById('tick-btn');
+  const runBtn = document.getElementById('run-btn');
+  const pauseBtn = document.getElementById('pause-btn');
   
-  // 2. Process through phase engine - meaning emerges from inversions
-  const { state: newPhaseState } = processTextInput(phaseEngine, randomToken);
-  phaseEngine = newPhaseState;
-  state.phaseEngine = phaseEngine;
-  
-  // 3. Step the phase engine (wave raise → collapse cycle)
-  phaseEngine = stepPhaseEngine(phaseEngine);
-  state.phaseEngine = phaseEngine;
-  
-  // 4. Attempt full inversion - THIS IS WHERE MEANING EMERGES
-  const { success, error } = attemptFullInversion(phaseEngine);
-  
-  if (success) {
-    console.log(`✓ Inversion SUCCESS → stable hadron (error: ${error.toFixed(3)})`);
-  } else {
-    console.log(`✗ Inversion FAILED → void region (error: ${error.toFixed(3)})`);
+  if (tickBtn) tickBtn.addEventListener('click', tick);
+  if (runBtn) runBtn.addEventListener('click', startRunning);
+  if (pauseBtn) {
+    pauseBtn.addEventListener('click', stopRunning);
+    pauseBtn.addEventListener('dblclick', reset); // Double-click to reset
   }
   
-  // 5. Get phase engine stats - all values emerge from dynamics
-  const stats = getPhaseEngineStats(phaseEngine);
-  
-  // 6. Update state from phase engine
-  state.hadronCount = stats.hadronCount;
-  state.stableHadronCount = stats.stableHadronCount;
-  state.blackHoleCount = stats.blackHoleCount;
-  state.successRate = stats.successRate;
-  state.dominantTimeQuark = stats.dominantQuarks.time;
-  state.dominantSpaceQuark = stats.dominantQuarks.space;
-  state.emotionR = stats.emotion.R;
-  state.emotionG = stats.emotion.G;
-  state.emotionB = stats.emotion.B;
-  state.emotionI = stats.emotion.I;
-  
-  console.log(`Phase Hadrons: ${stats.hadronCount} (${stats.stableHadronCount} stable)`);
-  console.log(`Dominant quarks: ${stats.dominantQuarks.time}/${stats.dominantQuarks.space}`);
-  console.log(`Success rate: ${(stats.successRate * 100).toFixed(1)}%`);
-  console.log(`Emotion RGBI: [${stats.emotion.R.toFixed(2)}, ${stats.emotion.G.toFixed(2)}, ${stats.emotion.B.toFixed(2)}, ${stats.emotion.I.toFixed(2)}]`);
-  
-  // 9. Update visualization
-  updateVisualization();
+  // Initial UI update
   updateUI();
   
-  console.log(`=== TICK ${state.tick} COMPLETE ============\n`);
+  // Log initial state
+  console.log('=== QFT-Structured Reasoning Engine ===');
+  console.log('Propositions encoded as spin states of baryons');
+  console.log('Gates: IF_THEN, NOT, ROT, PHASE, SO, BUT, UNLESS');
+  console.log('');
+  console.log(worldSummary(state.world));
 }
 
-function updateVisualization() {
-  if (!sceneState || !state.phaseEngine) return;
-  
-  // Update hadron triangles from phase engine
-  updateHadrons(sceneState.groups.hadrons, state.phaseEngine.cycle.hadrons);
+// Start when DOM is ready
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', init);
+} else {
+  init();
 }
 
-// ============================================
-// UI UPDATE
-// ============================================
-
-function updateUI() {
-  // Core stats
-  const tickEl = document.getElementById('logical-time');
-  const hadronEl = document.getElementById('hadron-count');
-  const blackholeEl = document.getElementById('blackhole-count');
-  const successRateEl = document.getElementById('training-accuracy');
-  const explanationEl = document.getElementById('explanation');
-  
-  // RGB axis bars (showing RGBI emotion)
-  const rBar = document.getElementById('r-bar');
-  const gBar = document.getElementById('g-bar');
-  const bBar = document.getElementById('b-bar');
-  
-  // Update values
-  if (tickEl) tickEl.textContent = state.tick.toString();
-  if (hadronEl) hadronEl.textContent = `${state.hadronCount} (${state.stableHadronCount} stable)`;
-  if (blackholeEl) blackholeEl.textContent = `${state.blackHoleCount}`;
-  if (successRateEl) successRateEl.textContent = `${(state.successRate * 100).toFixed(0)}%`;
-  
-  // Use RGBI emotion for bars
-  const rPct = state.emotionR * 100;
-  const gPct = state.emotionG * 100;
-  const bPct = state.emotionB * 100;
-  
-  if (rBar) rBar.style.width = `${Math.max(5, Math.min(100, rPct))}%`;
-  if (gBar) gBar.style.width = `${Math.max(5, Math.min(100, gPct))}%`;
-  if (bBar) bBar.style.width = `${Math.max(5, Math.min(100, bPct))}%`;
-  
-  // Status text with quark info
-  if (explanationEl) {
-    const status = state.isRunning ? 'Running' : 'Paused';
-    const quarks = `${state.dominantTimeQuark}/${state.dominantSpaceQuark}`;
-    explanationEl.textContent = `${status} | Quarks: ${quarks}\nSuccess: ${(state.successRate * 100).toFixed(0)}% | I=${state.emotionI.toFixed(2)}`;
-  }
-}
-
-// ============================================
-// ANIMATION LOOP
-// ============================================
-
-function animate() {
-  requestAnimationFrame(animate);
-  if (sceneState) {
-    animateScene(sceneState, state.phaseEngine);
-  }
-}
-
-// ============================================
-// INITIALIZATION
-// ============================================
-
-async function init() {
-  console.log('═══════════════════════════════════════════');
-  console.log('  PHASE-SPACE ASI');
-  console.log('  Everything emerges from inversions');
-  console.log('═══════════════════════════════════════════');
-  
-  // Get canvas
-  const canvas = document.getElementById('three-canvas') as HTMLCanvasElement;
-  if (!canvas) {
-    console.error('Canvas not found!');
-    return;
-  }
-  
-  // Initialize scene
-  sceneState = createPhaseScene(canvas);
-  
-  // Initialize engines
-  initEngines();
-  
-  // Event listeners
-  document.getElementById('tick-btn')?.addEventListener('click', simulationTick);
-  
-  document.getElementById('run-btn')?.addEventListener('click', () => {
-    if (!state.isRunning) {
-      state.isRunning = true;
-      state.tickInterval = window.setInterval(simulationTick, 500);
-    }
-  });
-  
-  document.getElementById('pause-btn')?.addEventListener('click', () => {
-    state.isRunning = false;
-    if (state.tickInterval) {
-      clearInterval(state.tickInterval);
-      state.tickInterval = null;
-    }
-  });
-  
-  // Handle resize
-  window.addEventListener('resize', () => {
-    const container = document.getElementById('canvas-container');
-    if (container && sceneState) {
-      resizeScene(sceneState, container.clientWidth, container.clientHeight);
-    }
-  });
-  
-  // Initial resize
-  const container = document.getElementById('canvas-container');
-  if (container) {
-    resizeScene(sceneState, container.clientWidth, container.clientHeight);
-  }
-  
-  // Start animation
-  animate();
-  
-  // Chat panel
-  const chatPanel = document.createElement('div');
-  chatPanel.id = 'chat-panel';
-  chatPanel.style.cssText = `
-    position: fixed; right: 20px; top: 20px;
-    width: 380px; height: calc(100vh - 40px);
-    z-index: 1000; box-shadow: 0 4px 20px rgba(0,0,0,0.5);
-    border-radius: 12px; overflow: hidden;
-  `;
-  document.body.appendChild(chatPanel);
-  
-  // Use the new phase-based chat session with learning
-  state.chatSession = createPhaseChatSession();
-  createChatUI(chatPanel, state.chatSession);
-  
-  console.log('Ready! Click Step or Run to begin.');
-}
-
-// Start
-init().catch(console.error);
+// Export for debugging
+(window as unknown as { asiState: UIState }).asiState = state;

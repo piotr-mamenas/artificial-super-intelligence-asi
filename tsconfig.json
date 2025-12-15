@@ -13,19 +13,7 @@
     "strict": true,
     "noUnusedLocals": true,
     "noUnusedParameters": true,
-    "noFallthroughCasesInSwitch": true,
-    "baseUrl": ".",
-    "paths": {
-      "@core/*": ["src/core/*"],
-      "@world/*": ["src/world/*"],
-      "@agent/*": ["src/agent/*"],
-      "@learning/*": ["src/learning/*"],
-      "@reasoning/*": ["src/reasoning/*"],
-      "@nested/*": ["src/nested/*"],
-      "@interpretability/*": ["src/interpretability/*"],
-      "@viz/*": ["src/viz/*"],
-      "@config/*": ["src/config/*"]
-    }
+    "noFallthroughCasesInSwitch": true
   },
   "include": ["src"]
 }
